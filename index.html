@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centro de Seguimiento Operativo — Molina Group</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --vino:#7B1F3A;--vino-light:#F5EAF0;--vino-mid:#B5566F;
+  --crema:#FAF6EF;--crema-dark:#EDE7D8;
+  --verde:#4A7C3F;--verde-light:#EAF2E8;--verde-mid:#7AB870;
+  --gris:#6B6560;--text:#2C2117;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F2EFE9;min-height:100vh;padding:1.5rem}
+.container{max-width:1100px;margin:0 auto}
+
+/* TOPBAR */
+.topbar{background:var(--vino);border-radius:12px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo-circle{width:46px;height:46px;border-radius:50%;background:#FAF6EF;border:2.5px solid #B5566F;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-text{display:flex;flex-direction:column;line-height:1.2}
+.logo-name{font-size:16px;font-weight:600;color:#FAF6EF;letter-spacing:.04em}
+.logo-sub{font-size:11px;color:#E0C8D0;letter-spacing:.12em}
+.sep{width:1px;height:30px;background:rgba(255,255,255,.2);margin:0 8px}
+.app-title{font-size:15px;font-weight:500;color:#FAF6EF}
+.app-date{font-size:11px;color:#D9BCC6}
+.nav-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.ntab{background:transparent;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 12px;font-size:12px;color:rgba(255,255,255,.7);cursor:pointer;transition:all .15s}
+.ntab.active,.ntab:hover{background:rgba(255,255,255,.18);color:#FAF6EF;border-color:rgba(255,255,255,.5)}
+
+/* CONFIG BANNER */
+.config-banner{background:#fff;border:2px solid var(--vino-mid);border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:14px}
+.config-banner.hidden{display:none}
+.config-icon{font-size:24px;flex-shrink:0;margin-top:2px}
+.config-title{font-size:14px;font-weight:600;color:var(--vino);margin-bottom:6px}
+.config-desc{font-size:13px;color:var(--gris);margin-bottom:10px;line-height:1.6}
+.config-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.config-input{font-size:13px;padding:7px 12px;border:1px solid var(--crema-dark);border-radius:8px;background:var(--crema);color:var(--text);width:380px;max-width:100%}
+.config-btn{background:var(--vino);color:#FAF6EF;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer}
+.config-btn:hover{background:var(--vino-mid)}
+.config-hint{font-size:11px;color:var(--gris);margin-top:6px;line-height:1.5}
+code{background:var(--crema-dark);padding:2px 6px;border-radius:4px;font-size:11px;font-family:monospace}
+
+/* MÉTRICAS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
+.metric{background:var(--crema);border:1px solid var(--crema-dark);border-radius:10px;padding:12px 14px}
+.metric-label{font-size:11px;color:var(--gris);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+.metric-val{font-size:24px;font-weight:500;color:var(--text)}
+
+/* SECTION */
+.section-title{font-size:14px;font-weight:500;color:var(--vino);display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-left:8px;border-left:3px solid var(--vino)}
+
+/* GERENCIAS */
+.ger-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+.ger-card{background:#fff;border:1px solid var(--crema-dark);border-radius:12px;padding:14px 16px}
+.ger-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.ger-name{font-size:13px;font-weight:500;color:var(--text)}
+.ger-count{font-size:11px;color:var(--gris);margin-top:2px}
+.ger-pct{font-size:22px;font-weight:500;line-height:1}
+.ger-pct-label{font-size:11px;color:var(--gris)}
+.prog-track{height:6px;background:var(--crema-dark);border-radius:3px;margin:8px 0;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .4s}
+.ger-stats{display:flex;gap:8px;flex-wrap:wrap}
+.ger-stat{font-size:11px;color:var(--gris);display:flex;align-items:center;gap:3px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+
+/* TABLA */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.filters{display:flex;gap:7px;flex-wrap:wrap}
+.fsel,.finput{font-size:12px;border-radius:8px;padding:6px 10px;border:1px solid var(--crema-dark);background:var(--crema);color:var(--text)}
+.finput{width:160px}
+.add-btn{background:var(--vino);border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;color:#FAF6EF;cursor:pointer}
+.add-btn:hover{background:var(--vino-mid)}
+.reload-btn{background:transparent;border:1px solid var(--crema-dark);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--gris);cursor:pointer;display:flex;align-items:center;gap:5px}
+.reload-btn:hover{background:var(--crema)}
+.table-wrap{border:1px solid var(--crema-dark);border-radius:12px;overflow:hidden}
+.data-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.data-table th{font-size:11px;font-weight:500;color:var(--vino);padding:10px 12px;text-align:left;background:var(--crema);border-bottom:1px solid var(--crema-dark);text-transform:uppercase;letter-spacing:.04em}
+.data-table td{font-size:12px;color:var(--text);padding:10px 12px;border-bottom:1px solid var(--crema-dark);vertical-align:middle;background:#fff}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--crema)}
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500;white-space:nowrap}
+.b-pend{background:#FEF3E2;color:#7A4A0A;border:1px solid #F5C97A}
+.b-proc{background:#EAF2FB;color:#1A4F82;border:1px solid #A0C4E8}
+.b-done{background:#EAF2E8;color:#27500A;border:1px solid #8CC47E}
+.b-atras{background:#FCEBEB;color:#7A1F1F;border:1px solid #F09595}
+.area-tag{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--vino-light);color:var(--vino);border:1px solid #D4A0B5;white-space:nowrap}
+.pri-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.action-btn{background:transparent;border:none;cursor:pointer;color:var(--gris);padding:4px 5px;border-radius:6px;font-size:15px}
+.action-btn:hover{color:var(--vino);background:var(--vino-light)}
+
+/* KANBAN */
+.kanban-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.k-col{background:var(--crema);border:1px solid var(--crema-dark);border-radius:10px;padding:10px}
+.k-header{font-size:12px;font-weight:500;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.k-count{font-size:11px;background:#fff;border:1px solid var(--crema-dark);border-radius:20px;padding:1px 7px;color:var(--gris)}
+.k-card{background:#fff;border:1px solid var(--crema-dark);border-radius:8px;padding:10px;margin-bottom:7px}
+.k-card-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px;line-height:1.4}
+.k-card-meta{font-size:11px;color:var(--gris);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.mini-bar{height:8px;background:var(--crema-dark);border-radius:4px;overflow:hidden}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(44,33,23,.45);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:#fff;border-radius:14px;padding:1.5rem;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:600;color:var(--vino);margin-bottom:1rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:11px;color:var(--gris);text-transform:uppercase;letter-spacing:.05em}
+.form-input{font-size:13px;padding:7px 10px;border:1px solid var(--crema-dark);border-radius:8px;background:var(--crema);color:var(--text)}
+.range-wrap{display:flex;align-items:center;gap:8px}
+.range-wrap input[type=range]{flex:1}
+.range-val{font-size:12px;font-weight:500;color:var(--vino);min-width:32px}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem}
+.btn-save{background:var(--vino);color:#FAF6EF;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:500;cursor:pointer}
+.btn-cancel{background:transparent;border:1px solid var(--crema-dark);border-radius:8px;padding:8px 16px;font-size:13px;color:var(--gris);cursor:pointer}
+
+/* STATUS */
+.status-bar{font-size:12px;color:var(--gris);padding:6px 0;display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+.status-dot.loading{background:#C87D1A;animation:pulse 1s infinite}
+.status-dot.error{background:#B83232}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.hidden{display:none}
+@media(max-width:700px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .ger-grid{grid-template-columns:1fr}
+  .kanban-grid{grid-template-columns:repeat(2,1fr)}
+  .config-input{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo-circle">
+        <svg width="30" height="28" viewBox="0 0 30 28" fill="none">
+          <circle cx="15" cy="7" r="5" fill="#7AB870"/>
+          <circle cx="9" cy="12" r="4.5" fill="#5A9E52"/>
+          <circle cx="21" cy="12" r="4.5" fill="#5A9E52"/>
+          <circle cx="12" cy="18" r="4" fill="#7AB870"/>
+          <circle cx="18" cy="18" r="4" fill="#7AB870"/>
+          <circle cx="15" cy="23" r="3.5" fill="#5A9E52"/>
+          <rect x="14" y="1" width="2" height="5" rx="1" fill="#4A7C3F"/>
+          <path d="M16 2 Q20 0 22 3" stroke="#4A7C3F" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">MOLINA</span>
+        <span class="logo-sub">GROUP</span>
+      </div>
+      <div class="sep"></div>
+      <div>
+        <p class="app-title">Centro de seguimiento operativo</p>
+        <p class="app-date" id="fecha-hoy"></p>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="ntab active" id="tab-resumen" onclick="setTab('resumen')">📊 Resumen</button>
+      <button class="ntab" id="tab-tabla" onclick="setTab('tabla')">📋 Tabla</button>
+      <button class="ntab" id="tab-kanban" onclick="setTab('kanban')">🗂 Tablero</button>
+    </div>
+  </div>
+
+  <!-- BANNER CONFIGURACIÓN -->
+  <div class="config-banner" id="config-banner">
+    <div class="config-icon">🔗</div>
+    <div style="flex:1">
+      <p class="config-title">Conecta tu Google Sheet</p>
+      <p class="config-desc">Pega aquí el link público de tu Google Sheet para cargar los datos reales de tus gerencias. Los datos se actualizan cada vez que recargas o haces clic en "Actualizar".</p>
+      <div class="config-row">
+        <input class="config-input" id="sheet-url-input" placeholder="https://docs.google.com/spreadsheets/d/TU_ID_AQUI/...">
+        <button class="config-btn" onclick="conectarSheet()">Conectar</button>
+      </div>
+      <p class="config-hint">
+        ⚠️ El Sheet debe ser público: en Google Sheets → <strong>Archivo → Compartir → Publicar en la web</strong> → selecciona la hoja → formato <code>CSV</code> → copia ese link.<br>
+        Es diferente al link normal del Sheet. El link correcto termina en <code>output=csv</code>.
+      </p>
+      <p style="margin-top:8px;font-size:12px;color:var(--gris)">
+        Mientras configuras el Sheet, la app muestra datos de ejemplo para que puedas explorar todas las funciones.
+      </p>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar" id="status-bar">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-txt">Mostrando datos de ejemplo — conecta tu Google Sheet para datos reales</span>
+    <button class="reload-btn" onclick="cargarDatos()" style="margin-left:auto">↻ Actualizar</button>
+  </div>
+
+  <!-- MÉTRICAS -->
+  <div class="metrics" id="metrics-row"></div>
+
+  <!-- VISTA RESUMEN -->
+  <div id="vista-resumen">
+    <p class="section-title">Avance por gerencia</p>
+    <div class="ger-grid" id="ger-grid"></div>
+    <p class="section-title">Resumen ejecutivo</p>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th style="width:22%">Gerencia</th>
+          <th style="width:8%">Total</th>
+          <th style="width:10%">Pendiente</th>
+          <th style="width:10%">En proceso</th>
+          <th style="width:10%">Atrasado</th>
+          <th style="width:10%">Completado</th>
+          <th style="width:18%">Avance</th>
+          <th style="width:12%">Alerta</th>
+        </tr></thead>
+        <tbody id="resumen-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- VISTA TABLA -->
+  <div id="vista-tabla" class="hidden">
+    <div class="toolbar">
+      <div class="filters">
+        <select class="fsel" id="f-area" onchange="renderAll()">
+          <option value="">Todas las gerencias</option>
+          <option>Mantenimiento eléctrico</option>
+          <option>Taller automotriz</option>
+          <option>Maquinaria agrícola</option>
+          <option>Construcciones</option>
+          <option>Calidad</option>
+          <option>Empaques de uva</option>
+        </select>
+        <select class="fsel" id="f-estatus" onchange="renderAll()">
+          <option value="">Todos los estatus</option>
+          <option>Pendiente</option><option>En proceso</option><option>Completado</option><option>Atrasado</option>
+        </select>
+        <select class="fsel" id="f-prioridad" onchange="renderAll()">
+          <option value="">Todas las prioridades</option>
+          <option>Alta</option><option>Media</option><option>Baja</option>
+        </select>
+        <input class="finput" id="f-buscar" placeholder="Buscar..." oninput="renderAll()">
+      </div>
+      <button class="add-btn" onclick="openModal()">+ Nuevo pendiente</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th style="width:24%">Pendiente</th>
+          <th style="width:17%">Gerencia</th>
+          <th style="width:10%">Prioridad</th>
+          <th style="width:12%">Estatus</th>
+          <th style="width:12%">Responsable</th>
+          <th style="width:13%">% Avance</th>
+          <th style="width:7%">Fecha</th>
+          <th style="width:5%"></th>
+        </tr></thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- VISTA KANBAN -->
+  <div id="vista-kanban" class="hidden">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="add-btn" onclick="openModal()">+ Nuevo pendiente</button>
+    </div>
+    <div class="kanban-grid" id="kanban-body"></div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal-box">
+      <p class="modal-title" id="modal-title-txt">Registrar nuevo pendiente</p>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Descripción</label>
+          <input class="form-input" id="f-desc" placeholder="Describe el pendiente...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gerencia</label>
+          <select class="form-input" id="f-gcia">
+            <option>Mantenimiento eléctrico</option><option>Taller automotriz</option>
+            <option>Maquinaria agrícola</option><option>Construcciones</option>
+            <option>Calidad</option><option>Empaques de uva</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsable</label>
+          <input class="form-input" id="f-resp" placeholder="Nombre">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prioridad</label>
+          <select class="form-input" id="f-pri"><option>Alta</option><option>Media</option><option>Baja</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha límite</label>
+          <input class="form-input" type="date" id="f-fecha">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estatus</label>
+          <select class="form-input" id="f-est"><option>Pendiente</option><option>En proceso</option><option>Completado</option><option>Atrasado</option></select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">% de avance</label>
+          <div class="range-wrap">
+            <input type="range" min="0" max="100" step="5" id="f-pct" value="0" oninput="document.getElementById('pct-out').textContent=this.value+'%'">
+            <span class="range-val" id="pct-out">0%</span>
+          </div>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Comentario / avance</label>
+          <input class="form-input" id="f-avance" placeholder="Último avance registrado...">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+        <button class="btn-save" onclick="guardar()">Guardar pendiente</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ─── FECHA ───
+const hoy = new Date();
+document.getElementById('fecha-hoy').textContent = hoy.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// ─── ESTADO ───
+let tab = 'resumen';
+let editIdx = null;
+let sheetUrl = localStorage.getItem('molina_sheet_url') || '';
+let usandoSheet = false;
+
+const GERENCIAS = ['Mantenimiento eléctrico','Taller automotriz','Maquinaria agrícola','Construcciones','Calidad','Empaques de uva'];
+const GER_ICONS = {'Mantenimiento eléctrico':'⚡','Taller automotriz':'🚗','Maquinaria agrícola':'🚜','Construcciones':'🏗','Calidad':'✅','Empaques de uva':'📦'};
+
+// ─── DATOS DE EJEMPLO (se usan hasta conectar el Sheet) ───
+const DATOS_EJEMPLO = [
+  {desc:'Revisión de transformador principal',gerencia:'Mantenimiento eléctrico',responsable:'Carlos Ruiz',prioridad:'Alta',fecha:'2026-05-20',estatus:'En proceso',avance:'Refacción solicitada',pct:40},
+  {desc:'Mantenimiento preventivo camioneta F-250',gerencia:'Taller automotriz',responsable:'Luis Méndez',prioridad:'Media',fecha:'2026-05-22',estatus:'Pendiente',avance:'',pct:0},
+  {desc:'Calibración de tractores John Deere',gerencia:'Maquinaria agrícola',responsable:'Ernesto López',prioridad:'Alta',fecha:'2026-05-18',estatus:'Atrasado',avance:'Pendiente de técnico',pct:15},
+  {desc:'Revisión de estructura bodega norte',gerencia:'Construcciones',responsable:'Ramón Torres',prioridad:'Media',fecha:'2026-05-28',estatus:'En proceso',avance:'Inicio de obra el lunes',pct:60},
+  {desc:'Auditoría interna proceso de empaque',gerencia:'Calidad',responsable:'Ana García',prioridad:'Alta',fecha:'2026-05-19',estatus:'Completado',avance:'Reporte enviado',pct:100},
+  {desc:'Inventario de cajas temporada 2026',gerencia:'Empaques de uva',responsable:'Pedro Soto',prioridad:'Media',fecha:'2026-05-25',estatus:'Pendiente',avance:'',pct:0},
+  {desc:'Reparación tablero eléctrico sector 3',gerencia:'Mantenimiento eléctrico',responsable:'Carlos Ruiz',prioridad:'Alta',fecha:'2026-05-17',estatus:'Atrasado',avance:'Esperando cotización',pct:5},
+  {desc:'Cambio de aceite flota vehicular',gerencia:'Taller automotriz',responsable:'Luis Méndez',prioridad:'Baja',fecha:'2026-06-01',estatus:'Pendiente',avance:'',pct:0},
+  {desc:'Certificación ISO proceso cosecha',gerencia:'Calidad',responsable:'Ana García',prioridad:'Alta',fecha:'2026-06-10',estatus:'En proceso',avance:'Documentación al 70%',pct:70},
+  {desc:'Calibración báscula empaque',gerencia:'Empaques de uva',responsable:'Pedro Soto',prioridad:'Alta',fecha:'2026-05-21',estatus:'En proceso',avance:'Técnico agendado',pct:30},
+  {desc:'Instalación sistema riego sector 4',gerencia:'Construcciones',responsable:'Ramón Torres',prioridad:'Media',fecha:'2026-06-05',estatus:'Pendiente',avance:'',pct:0},
+  {desc:'Revisión bomba hidráulica cosechadora',gerencia:'Maquinaria agrícola',responsable:'Ernesto López',prioridad:'Media',fecha:'2026-05-30',estatus:'Pendiente',avance:'',pct:0},
+];
+
+let pendientes = JSON.parse(JSON.stringify(DATOS_EJEMPLO));
+
+// ─── CONEXIÓN GOOGLE SHEET ───
+if (sheetUrl) {
+  document.getElementById('sheet-url-input').value = sheetUrl;
+}
+
+function conectarSheet() {
+  const url = document.getElementById('sheet-url-input').value.trim();
+  if (!url) { alert('Pega el link de tu Google Sheet primero.'); return; }
+  if (!url.includes('spreadsheets') && !url.includes('output=csv')) {
+    alert('El link no parece válido. Asegúrate de usar el link de "Publicar en la web" con formato CSV.'); return;
+  }
+  sheetUrl = url;
+  localStorage.setItem('molina_sheet_url', url);
+  cargarDatos();
+}
+
+function setStatus(estado, msg) {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-txt');
+  dot.className = 'status-dot' + (estado === 'loading' ? ' loading' : estado === 'error' ? ' error' : '');
+  txt.textContent = msg;
+}
+
+async function cargarDatos() {
+  if (!sheetUrl) {
+    setStatus('ok', 'Mostrando datos de ejemplo — conecta tu Google Sheet para datos reales');
+    pendientes = JSON.parse(JSON.stringify(DATOS_EJEMPLO));
+    renderAll();
+    return;
+  }
+  setStatus('loading', 'Cargando datos desde Google Sheet...');
+  try {
+    // Construir URL de CSV a partir del link publicado
+    let csvUrl = sheetUrl;
+    // Si es link normal del sheet, convertir a CSV exportable
+    if (sheetUrl.includes('/edit') || (!sheetUrl.includes('output=csv') && !sheetUrl.includes('pub?'))) {
+      const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (match) {
+        csvUrl = 'https://docs.google.com/spreadsheets/d/' + match[1] + '/export?format=csv';
+      }
+    }
+    const resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error('No se pudo acceder al Sheet. Verifica que esté publicado como CSV.');
+    const text = await resp.text();
+    const rows = text.trim().split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
+    if (rows.length < 2) throw new Error('El Sheet está vacío o no tiene el formato esperado.');
+
+    // Mapear columnas — el Form de Google crea columnas en este orden:
+    // Marca de tiempo | Gerencia | Descripción | Responsable | Prioridad | Fecha límite | Estatus | % de avance | Comentario
+    const headers = rows[0].map(h => h.toLowerCase().trim());
+    const idx = {
+      gerencia:    headers.findIndex(h => h.includes('gerencia')),
+      desc:        headers.findIndex(h => h.includes('descrip') || h.includes('pendiente')),
+      responsable: headers.findIndex(h => h.includes('responsable')),
+      prioridad:   headers.findIndex(h => h.includes('prioridad')),
+      fecha:       headers.findIndex(h => h.includes('fecha')),
+      estatus:     headers.findIndex(h => h.includes('estatus') || h.includes('status')),
+      pct:         headers.findIndex(h => h.includes('avance') || h.includes('%')),
+      avance:      headers.findIndex(h => h.includes('comentario') || h.includes('nota')),
+    };
+
+    pendientes = rows.slice(1).filter(r => r.length > 1 && r[idx.desc || 1]).map(r => {
+      const pctRaw = idx.pct >= 0 ? r[idx.pct] : '0';
+      const pctNum = parseInt(pctRaw.replace(/[^0-9]/g,'')) || 0;
+      return {
+        desc:        idx.desc >= 0 ? r[idx.desc] : r[1] || '',
+        gerencia:    idx.gerencia >= 0 ? r[idx.gerencia] : r[0] || '',
+        responsable: idx.responsable >= 0 ? r[idx.responsable] : '',
+        prioridad:   idx.prioridad >= 0 ? r[idx.prioridad] : 'Media',
+        fecha:       idx.fecha >= 0 ? parseFecha(r[idx.fecha]) : '',
+        estatus:     idx.estatus >= 0 ? r[idx.estatus] : 'Pendiente',
+        avance:      idx.avance >= 0 ? r[idx.avance] : '',
+        pct:         pctNum,
+      };
+    }).filter(p => p.desc);
+
+    usandoSheet = true;
+    document.getElementById('config-banner').classList.add('hidden');
+    setStatus('ok', 'Datos actualizados desde Google Sheet — ' + pendientes.length + ' registros · ' + new Date().toLocaleTimeString('es-MX'));
+    renderAll();
+  } catch(e) {
+    setStatus('error', 'Error: ' + e.message);
+    pendientes = JSON.parse(JSON.stringify(DATOS_EJEMPLO));
+    renderAll();
+  }
+}
+
+function parseFecha(str) {
+  if (!str) return '';
+  // Intentar formato DD/MM/YYYY o YYYY-MM-DD
+  const parts = str.split(/[\/\-]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) return str; // ya es YYYY-MM-DD
+    return parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
+  }
+  return str;
+}
+
+// ─── NAVEGACIÓN ───
+function setTab(t) {
+  tab = t;
+  ['resumen','tabla','kanban'].forEach(v => {
+    document.getElementById('vista-' + v).classList.toggle('hidden', v !== t);
+    document.getElementById('tab-' + v).classList.toggle('active', v === t);
+  });
+  renderAll();
+}
+
+// ─── HELPERS ───
+function isAtrasado(p) {
+  return p.fecha && p.estatus !== 'Completado' && new Date(p.fecha + 'T12:00:00') < hoy;
+}
+function pctColor(n) {
+  if (n >= 80) return '#3B6D11';
+  if (n >= 40) return '#1A4F82';
+  if (n > 0)   return '#C87D1A';
+  return '#B83232';
+}
+function badgeEst(e) {
+  var m = {Pendiente:'b-pend','En proceso':'b-proc',Completado:'b-done',Atrasado:'b-atras'};
+  return '<span class="badge ' + (m[e]||'b-pend') + '">' + e + '</span>';
+}
+function priDot(p) {
+  var c = {Alta:'#B83232',Media:'#C87D1A',Baja:'#4A7C3F'};
+  return '<span class="pri-dot" style="background:' + (c[p]||c.Media) + '"></span>' + p;
+}
+function fmtFecha(f) {
+  if (!f) return '—';
+  return new Date(f + 'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'});
+}
+function gerStats(g) {
+  var items = pendientes.filter(p => p.gerencia === g);
+  if (!items.length) return null;
+  var total = items.length;
+  var done  = items.filter(p => p.estatus === 'Completado').length;
+  var proc  = items.filter(p => p.estatus === 'En proceso').length;
+  var pend  = items.filter(p => p.estatus === 'Pendiente').length;
+  var atr   = items.filter(p => p.estatus === 'Atrasado' || isAtrasado(p)).length;
+  var avg   = Math.round(items.reduce((s,p) => s + (p.pct||0), 0) / total);
+  return {total,done,proc,pend,atr,avg};
+}
+function getFiltered() {
+  var area = (document.getElementById('f-area')||{value:''}).value;
+  var est  = (document.getElementById('f-estatus')||{value:''}).value;
+  var pri  = (document.getElementById('f-prioridad')||{value:''}).value;
+  var bus  = ((document.getElementById('f-buscar')||{value:''}).value).toLowerCase();
+  return pendientes.filter(p =>
+    (!area || p.gerencia === area) &&
+    (!est  || p.estatus  === est)  &&
+    (!pri  || p.prioridad=== pri)  &&
+    (!bus  || p.desc.toLowerCase().includes(bus) || p.responsable.toLowerCase().includes(bus))
+  );
+}
+
+// ─── RENDER MÉTRICAS ───
+function renderMetrics() {
+  var t    = pendientes.length;
+  var enP  = pendientes.filter(p => p.estatus === 'En proceso').length;
+  var atr  = pendientes.filter(p => p.estatus === 'Atrasado' || isAtrasado(p)).length;
+  var done = pendientes.filter(p => p.estatus === 'Completado').length;
+  var avg  = t ? Math.round(pendientes.reduce((s,p) => s+(p.pct||0), 0) / t) : 0;
+  document.getElementById('metrics-row').innerHTML =
+    '<div class="metric"><div class="metric-label">Total pendientes</div><div class="metric-val">' + t + '</div></div>' +
+    '<div class="metric"><div class="metric-label">En proceso</div><div class="metric-val" style="color:var(--vino)">' + enP + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Atrasados</div><div class="metric-val" style="color:#B83232">' + atr + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Avance global</div><div class="metric-val" style="color:#3B6D11">' + avg + '%</div></div>';
+}
+
+// ─── RENDER RESUMEN ───
+function renderGerencias() {
+  document.getElementById('ger-grid').innerHTML = GERENCIAS.map(g => {
+    var s = gerStats(g);
+    if (!s) return '';
+    var c = pctColor(s.avg);
+    return '<div class="ger-card">' +
+      '<div class="ger-header">' +
+        '<div><div class="ger-name">' + GER_ICONS[g] + ' ' + g + '</div><div class="ger-count">' + s.total + ' pendiente' + (s.total!==1?'s':'') + '</div></div>' +
+        '<div style="text-align:right"><div class="ger-pct" style="color:'+c+'">' + s.avg + '%</div><div class="ger-pct-label">avance</div></div>' +
+      '</div>' +
+      '<div class="prog-track"><div class="prog-fill" style="width:'+s.avg+'%;background:'+c+'"></div></div>' +
+      '<div class="ger-stats">' +
+        '<span class="ger-stat"><span class="dot" style="background:#C87D1A"></span>' + s.pend + ' pend.</span>' +
+        '<span class="ger-stat"><span class="dot" style="background:#1A4F82"></span>' + s.proc + ' proc.</span>' +
+        (s.atr ? '<span class="ger-stat"><span class="dot" style="background:#B83232"></span>' + s.atr + ' atras.</span>' : '') +
+        '<span class="ger-stat"><span class="dot" style="background:#3B6D11"></span>' + s.done + ' comp.</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+function renderResumenTabla() {
+  document.getElementById('resumen-body').innerHTML = GERENCIAS.map(g => {
+    var s = gerStats(g);
+    if (!s) return '<tr><td>' + g + '</td><td colspan="7" style="color:var(--gris);font-size:12px">Sin registros</td></tr>';
+    var c = pctColor(s.avg);
+    var alerta = s.atr > 0 ? '<span class="badge b-atras">'+s.atr+' atrasado'+(s.atr!==1?'s':'')+'</span>'
+      : s.avg >= 80 ? '<span class="badge b-done">Buen ritmo</span>'
+      : s.pend === s.total ? '<span class="badge b-pend">Sin iniciar</span>'
+      : '<span class="badge b-proc">En curso</span>';
+    return '<tr>' +
+      '<td><span style="font-weight:500">' + GER_ICONS[g] + ' ' + g + '</span></td>' +
+      '<td style="text-align:center;font-weight:500">' + s.total + '</td>' +
+      '<td style="color:#7A4A0A">' + s.pend + '</td>' +
+      '<td style="color:#1A4F82">' + s.proc + '</td>' +
+      '<td style="color:' + (s.atr?'#B83232':'var(--gris)') + ';font-weight:' + (s.atr?'500':'400') + '">' + s.atr + '</td>' +
+      '<td style="color:#27500A">' + s.done + '</td>' +
+      '<td><div style="display:flex;align-items:center;gap:8px"><div class="mini-bar" style="flex:1"><div style="height:100%;width:'+s.avg+'%;background:'+c+';border-radius:4px"></div></div><span style="font-size:12px;font-weight:500;color:'+c+';min-width:30px">'+s.avg+'%</span></div></td>' +
+      '<td>' + alerta + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ─── RENDER TABLA ───
+function renderTabla() {
+  var list = getFiltered();
+  var tbody = document.getElementById('tabla-body');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--gris);padding:24px">Sin resultados</td></tr>'; return; }
+  tbody.innerHTML = list.map(p => {
+    var ri = pendientes.indexOf(p);
+    var atras = isAtrasado(p) && p.estatus !== 'Completado';
+    var c = pctColor(p.pct||0);
+    return '<tr>' +
+      '<td><span style="font-weight:500">' + p.desc + '</span>' + (p.avance ? '<div style="font-size:11px;color:var(--gris);margin-top:2px">'+p.avance+'</div>' : '') + '</td>' +
+      '<td><span class="area-tag">' + p.gerencia + '</span></td>' +
+      '<td>' + priDot(p.prioridad) + '</td>' +
+      '<td>' + badgeEst(p.estatus) + '</td>' +
+      '<td style="color:var(--gris)">' + p.responsable + '</td>' +
+      '<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:var(--crema-dark);border-radius:3px;overflow:hidden;min-width:40px"><div style="height:100%;width:'+(p.pct||0)+'%;background:'+c+';border-radius:3px"></div></div><span style="font-size:11px;font-weight:500;color:'+c+';min-width:28px">'+(p.pct||0)+'%</span></div></td>' +
+      '<td style="color:' + (atras?'#B83232':'var(--text)') + ';font-size:12px">' + fmtFecha(p.fecha) + '</td>' +
+      '<td>' +
+        '<button class="action-btn" onclick="editarItem(' + ri + ')" title="Editar">✏️</button>' +
+        '<button class="action-btn" onclick="cambiarEstatus(' + ri + ')" title="Avanzar estatus">🔄</button>' +
+        '<button class="action-btn" onclick="eliminar(' + ri + ')" title="Eliminar">🗑</button>' +
+      '</td></tr>';
+  }).join('');
+}
+
+// ─── RENDER KANBAN ───
+function renderKanban() {
+  var list = getFiltered();
+  var cols = ['Pendiente','En proceso','Atrasado','Completado'];
+  var cc   = {Pendiente:'#C87D1A','En proceso':'#1A4F82',Atrasado:'#B83232',Completado:'#3B6D11'};
+  document.getElementById('kanban-body').innerHTML = cols.map(col => {
+    var items = list.filter(p => p.estatus === col);
+    var cards = items.map(p => {
+      var c = pctColor(p.pct||0);
+      return '<div class="k-card">' +
+        '<div class="k-card-title">' + p.desc + '</div>' +
+        '<div class="k-card-meta"><span class="area-tag" style="font-size:10px">' + p.gerencia.split(' ')[0] + '</span><span style="font-size:11px">' + priDot(p.prioridad) + '</span></div>' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-top:7px"><div style="flex:1;height:4px;background:var(--crema-dark);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+(p.pct||0)+'%;background:'+c+';border-radius:2px"></div></div><span style="font-size:10px;font-weight:500;color:'+c+'">'+(p.pct||0)+'%</span></div>' +
+      '</div>';
+    }).join('') || '<div style="font-size:11px;color:var(--gris);text-align:center;padding:12px 0">Sin pendientes</div>';
+    return '<div class="k-col"><div class="k-header"><span style="color:'+cc[col]+'">'+col+'</span><span class="k-count">'+items.length+'</span></div>' + cards + '</div>';
+  }).join('');
+}
+
+// ─── RENDER ALL ───
+function renderAll() {
+  renderMetrics();
+  if (tab === 'resumen') { renderGerencias(); renderResumenTabla(); }
+  else if (tab === 'tabla') renderTabla();
+  else renderKanban();
+}
+
+// ─── MODAL ───
+function openModal() {
+  editIdx = null;
+  ['f-desc','f-resp','f-avance'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-fecha').value = '';
+  document.getElementById('f-pri').value = 'Alta';
+  document.getElementById('f-est').value = 'Pendiente';
+  document.getElementById('f-gcia').value = 'Mantenimiento eléctrico';
+  document.getElementById('f-pct').value = 0;
+  document.getElementById('pct-out').textContent = '0%';
+  document.getElementById('modal-title-txt').textContent = 'Registrar nuevo pendiente';
+  document.getElementById('modal-bg').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-bg').classList.remove('open'); }
+document.getElementById('modal-bg').addEventListener('click', function(e){ if(e.target === this) closeModal(); });
+
+function guardar() {
+  var desc = document.getElementById('f-desc').value.trim();
+  if (!desc) { document.getElementById('f-desc').style.borderColor='#B83232'; return; }
+  document.getElementById('f-desc').style.borderColor = '';
+  var item = {
+    desc, gerencia:document.getElementById('f-gcia').value,
+    responsable: document.getElementById('f-resp').value || 'Sin asignar',
+    prioridad: document.getElementById('f-pri').value,
+    fecha: document.getElementById('f-fecha').value,
+    estatus: document.getElementById('f-est').value,
+    avance: document.getElementById('f-avance').value,
+    pct: parseInt(document.getElementById('f-pct').value)
+  };
+  if (editIdx !== null) pendientes[editIdx] = item; else pendientes.unshift(item);
+  closeModal(); renderAll();
+}
+function editarItem(idx) {
+  editIdx = idx; var p = pendientes[idx];
+  document.getElementById('f-desc').value = p.desc;
+  document.getElementById('f-gcia').value = p.gerencia;
+  document.getElementById('f-resp').value = p.responsable;
+  document.getElementById('f-pri').value = p.prioridad;
+  document.getElementById('f-fecha').value = p.fecha;
+  document.getElementById('f-est').value = p.estatus;
+  document.getElementById('f-avance').value = p.avance;
+  document.getElementById('f-pct').value = p.pct || 0;
+  document.getElementById('pct-out').textContent = (p.pct||0) + '%';
+  document.getElementById('modal-title-txt').textContent = 'Editar pendiente';
+  document.getElementById('modal-bg').classList.add('open');
+}
+function cambiarEstatus(idx) {
+  var ciclo = ['Pendiente','En proceso','Completado','Atrasado'];
+  var cur = pendientes[idx].estatus;
+  pendientes[idx].estatus = ciclo[(ciclo.indexOf(cur)+1) % ciclo.length];
+  if (pendientes[idx].estatus === 'Completado') pendientes[idx].pct = 100;
+  renderAll();
+}
+function eliminar(idx) {
+  if (confirm('¿Eliminar este pendiente?')) { pendientes.splice(idx,1); renderAll(); }
+}
+
+// ─── INIT ───
+cargarDatos();
+// Auto-refresh cada 5 minutos si hay Sheet conectado
+setInterval(function(){ if(sheetUrl) cargarDatos(); }, 5 * 60 * 1000);
+</script>
+</body>
+</html>
