@@ -166,17 +166,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <option value="">Todas las prioridades</option>
           <option>Alta</option><option>Media</option><option>Baja</option>
         </select>
+        <select class="fsel" id="f-campo" onchange="renderAll()">
+          <option value="">Todos los campos</option>
+          <option>Las Mercedes</option>
+          <option>La Navidad</option>
+          <option>Los Vergeles</option>
+          <option>Santa María</option>
+          <option>Don Roberto</option>
+        </select>
+        <select class="fsel" id="f-resp" onchange="renderAll()">
+          <option value="">Todos los responsables</option>
+        </select>
         <input class="finput" id="f-bus" placeholder="Buscar..." oninput="renderAll()">
+        <button class="fsel" onclick="limpiarFiltros()" style="cursor:pointer;color:var(--gris)">✕ Limpiar</button>
       </div>
       <button class="add-btn" onclick="openModal()">+ Nuevo pendiente</button>
     </div>
     <div class="table-wrap">
       <table class="data-table">
         <thead><tr>
-          <th style="width:25%">Pendiente</th><th style="width:17%">Gerencia</th>
-          <th style="width:9%">Prioridad</th><th style="width:11%">Estatus</th>
-          <th style="width:11%">Responsable</th><th style="width:13%">% Avance</th>
-          <th style="width:8%">Fecha</th><th style="width:6%"></th>
+          <th style="width:20%">Pendiente</th><th style="width:14%">Gerencia</th>
+          <th style="width:10%">Campo</th><th style="width:8%">Prioridad</th>
+          <th style="width:10%">Estatus</th><th style="width:10%">Responsable</th>
+          <th style="width:12%">% Avance</th><th style="width:7%">Fecha</th><th style="width:5%"></th>
         </tr></thead>
         <tbody id="tabla-body"></tbody>
       </table>
@@ -227,6 +239,7 @@ const GERENCIAS = ['Mantenimiento eléctrico','Taller automotriz','Maquinaria ag
 const GER_ICONS = {'Mantenimiento eléctrico':'⚡','Taller automotriz':'🚗','Maquinaria agrícola':'🚜','Construcciones':'🏗','Calidad':'✅','Empaques de uva':'📦'};
 const COL_MAP = {
   id:          ['id del pendiente','id pendiente','id','folio','clave'],
+  campo:       ['campo'],
   gerencia:    ['gerencia'],
   desc:        ['descripci','pendiente','descripcion'],
   responsable: ['responsable'],
@@ -315,6 +328,7 @@ function procesarDatos(json) {
     if(est==='Completado') pctNum=100;
     return {
       id:          map.id ? String(row[map.id]||'').trim().toUpperCase() : '',
+      campo:       map.campo ? String(row[map.campo]||'').trim() : '',
       desc:        map.desc ? String(row[map.desc]||'').trim() : '',
       gerencia:    map.gerencia ? String(row[map.gerencia]||'').trim() : '',
       responsable: map.responsable ? String(row[map.responsable]||'').trim() : '',
@@ -364,9 +378,21 @@ function cargarEjemplos(){
 
 function parseFecha(s){
   if(!s) return '';
-  var p=s.split(/[\/\-]/);
-  if(p.length===3){if(p[0].length===4) return s; return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');}
-  return s;
+  s = String(s).trim();
+  // Formato Google Forms: MM/DD/YYYY o M/D/YYYY
+  var p = s.split(/[\/\-]/);
+  if(p.length===3){
+    if(p[0].length===4) return s; // ya es YYYY-MM-DD
+    // Detectar si es MM/DD/YYYY (Google Forms) o DD/MM/YYYY
+    var a = parseInt(p[0]), b = parseInt(p[1]), anio = parseInt(p[2]);
+    if(anio > 1900){
+      // Es MM/DD/YYYY de Google Forms
+      return anio+'-'+String(a).padStart(2,'0')+'-'+String(b).padStart(2,'0');
+    }
+    // Es DD/MM/YYYY
+    return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
+  }
+  return '';
 }
 function setStatus(estado,msg){
   var d=document.getElementById('sdot');
@@ -403,9 +429,12 @@ function getFiltered(){
   var area=(document.getElementById('f-area')||{value:''}).value;
   var est=(document.getElementById('f-est')||{value:''}).value;
   var pri=(document.getElementById('f-pri')||{value:''}).value;
+  var resp=(document.getElementById('f-resp')||{value:''}).value;
+  var campo=(document.getElementById('f-campo')||{value:''}).value;
   var bus=((document.getElementById('f-bus')||{value:''}).value).toLowerCase();
   return pendientes.filter(function(p){
     return(!area||p.gerencia===area)&&(!est||p.estatus===est)&&(!pri||p.prioridad===pri)&&
+           (!resp||p.responsable===resp)&&(!campo||p.campo===campo)&&
            (!bus||p.desc.toLowerCase().includes(bus)||p.responsable.toLowerCase().includes(bus));
   });
 }
@@ -466,7 +495,7 @@ function renderTabla(){
     var ri=pendientes.indexOf(p),atras=isAtrasado(p)&&p.estatus!=='Completado',c=pctColor(p.pct||0);
     return'<tr>'+
       '<td><span style="font-weight:500">'+p.desc+'</span>'+(p.avance?'<div style="font-size:11px;color:var(--gris);margin-top:2px">'+p.avance+'</div>':'')+'</td>'+
-      '<td><span class="area-tag">'+p.gerencia+'</span></td>'+
+      '<td><span class="area-tag">'+p.gerencia+'</span></td>'+'<td style="font-size:12px;color:var(--gris)">'+( p.campo||'—')+'</td>'+
       '<td>'+priDot(p.prioridad)+'</td>'+
       '<td>'+badgeEst(p.estatus)+'</td>'+
       '<td style="color:var(--gris)">'+p.responsable+'</td>'+
@@ -496,8 +525,29 @@ function renderKanban(){
   }).join('');
 }
 function renderAll(){
+  actualizarFiltroResponsables();
   renderMetrics();
   if(tab==='resumen'){renderGerencias();renderResumenTabla();}
+  else if(tab==='tabla') renderTabla();
+  else renderKanban();
+}
+
+function actualizarFiltroResponsables(){
+  var sel=document.getElementById('f-resp');
+  if(!sel) return;
+  var actual=sel.value;
+  var lista=[];
+  pendientes.forEach(function(p){ if(p.responsable&&lista.indexOf(p.responsable)===-1) lista.push(p.responsable); });
+  lista.sort();
+  sel.innerHTML='<option value="">Todos los responsables</option>';
+  lista.forEach(function(r){ var o=document.createElement('option');o.value=r;o.textContent=r;if(r===actual)o.selected=true;sel.appendChild(o); });
+}
+
+function limpiarFiltros(){
+  ['f-area','f-est','f-pri','f-campo','f-resp'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var b=document.getElementById('f-bus');if(b)b.value='';
+  renderAll();
+}
   else if(tab==='tabla') renderTabla();
   else renderKanban();
 }
