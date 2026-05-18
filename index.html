@@ -258,61 +258,43 @@ let tab='resumen', editIdx=null, pendientes=[];
 // ── CARGA DE DATOS ──────────────────────────────────────
 function cargarDatos() {
   setStatus('cargando','Conectando con Google Sheet...');
-  // Intentar fetch directo primero (funciona desde GitHub Pages)
-  fetch(SCRIPT_URL)
-    .then(function(r){
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      return r.json();
-    })
-    .then(function(data){
-      procesarDatos(data);
-    })
-    .catch(function(){
-      // Si fetch falla, intentar JSONP como fallback
-      intentarJSONP();
-    });
-}
-
-function intentarJSONP() {
-  var callbackName = 'cb_' + Date.now();
+  var callbackName = 'mgcb_' + Date.now();
   var script = document.createElement('script');
   var done = false;
-  var timeout = setTimeout(function(){
+
+  var timer = setTimeout(function(){
     if(done) return;
     done = true;
     delete window[callbackName];
-    script.remove();
-    setStatus('error','No se pudo conectar — haz clic en Actualizar para reintentar');
+    if(script.parentNode) script.parentNode.removeChild(script);
+    setStatus('error','Tiempo agotado — haz clic en Actualizar para reintentar');
     cargarEjemplos();
-  }, 10000);
+  }, 12000);
+
   window[callbackName] = function(data) {
     if(done) return;
     done = true;
-    clearTimeout(timeout);
+    clearTimeout(timer);
     delete window[callbackName];
-    script.remove();
-    procesarDatos(data);
+    if(script.parentNode) script.parentNode.removeChild(script);
+    try { procesarDatos(data); }
+    catch(e){ setStatus('error','Error procesando datos: '+e.message); cargarEjemplos(); }
   };
-  script.src = SCRIPT_URL + '?callback=' + callbackName;
+
+  script.src = SCRIPT_URL + '?callback=' + callbackName + '&t=' + Date.now();
   script.onerror = function(){
     if(done) return;
     done = true;
-    clearTimeout(timeout);
+    clearTimeout(timer);
     delete window[callbackName];
-    setStatus('error','Error de conexión — verifica tu Apps Script');
+    setStatus('error','Error de red — verifica tu conexión');
     cargarEjemplos();
   };
   document.head.appendChild(script);
 }
 
 function intentarFetch() {
-  fetch(SCRIPT_URL)
-    .then(function(r){ return r.json(); })
-    .then(function(data){ procesarDatos(data); })
-    .catch(function(e){
-      setStatus('error','Sin conexión al Sheet');
-      cargarEjemplos();
-    });
+  cargarDatos();
 }
 
 function procesarDatos(json) {
