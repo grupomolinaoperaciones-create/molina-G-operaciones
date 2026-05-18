@@ -546,9 +546,6 @@ function limpiarFiltros(){
   var b=document.getElementById('f-bus');if(b)b.value='';
   renderAll();
 }
-  else if(tab==='tabla') renderTabla();
-  else renderKanban();
-}
 function openModal(){
   editIdx=null;
   ['m-desc','m-resp','m-avance'].forEach(function(id){document.getElementById(id).value='';});
