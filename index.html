@@ -233,7 +233,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 // ── TU URL DE APPS SCRIPT ─────────────────────────────────
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTgSA76-lyiJrxM-hkl0piMC4cDIzGErWO_LXTeveCIWO5zP5vHu2fRsH80zNW2jqGkg/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwK8wQ7JHmR9RE2GiqjkGTY8ybIhQTekWDUuaj9qaVqG3RXsyX-GEe9cNY6gJcKYkIBTQ/exec';
 
 const GERENCIAS = ['Mantenimiento eléctrico','Taller automotriz','Maquinaria agrícola','Construcciones','Calidad','Empaques de uva'];
 const GER_ICONS = {'Mantenimiento eléctrico':'⚡','Taller automotriz':'🚗','Maquinaria agrícola':'🚜','Construcciones':'🏗','Calidad':'✅','Empaques de uva':'📦'};
@@ -334,7 +334,9 @@ function procesarDatos(json) {
   // Mapear todas las filas
   var todas = json.map(function(row){
     var pctRaw = map.pct ? String(row[map.pct]||'0') : '0';
-    var pctNum = parseInt(pctRaw.replace(/[^0-9]/g,''))||0;
+    var pctFloat = parseFloat(pctRaw.replace(/[^0-9.]/g,''))||0;
+    // Si viene en decimal (0-1) convertir a porcentaje (0-100)
+    var pctNum = pctFloat <= 1 && pctFloat > 0 ? Math.round(pctFloat*100) : Math.round(pctFloat);
     var est = map.estatus ? String(row[map.estatus]||'Pendiente').trim() : 'Pendiente';
     if(est==='Completado') pctNum=100;
     return {
@@ -390,17 +392,19 @@ function cargarEjemplos(){
 function parseFecha(s){
   if(!s) return '';
   s = String(s).trim();
-  // Formato Google Forms: MM/DD/YYYY o M/D/YYYY
+  if(!s || s==='0' || s==='') return '';
+  // Intentar parsear con Date directamente (maneja formatos largos de Google)
+  var d = new Date(s);
+  if(!isNaN(d.getTime())){
+    var anio = d.getFullYear();
+    var mes = String(d.getMonth()+1).padStart(2,'0');
+    var dia = String(d.getDate()).padStart(2,'0');
+    return anio+'-'+mes+'-'+dia;
+  }
+  // Formato DD/MM/YYYY
   var p = s.split(/[\/\-]/);
   if(p.length===3){
-    if(p[0].length===4) return s; // ya es YYYY-MM-DD
-    // Detectar si es MM/DD/YYYY (Google Forms) o DD/MM/YYYY
-    var a = parseInt(p[0]), b = parseInt(p[1]), anio = parseInt(p[2]);
-    if(anio > 1900){
-      // Es MM/DD/YYYY de Google Forms
-      return anio+'-'+String(a).padStart(2,'0')+'-'+String(b).padStart(2,'0');
-    }
-    // Es DD/MM/YYYY
+    if(p[0].length===4) return s;
     return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
   }
   return '';
