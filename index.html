@@ -255,51 +255,62 @@ document.getElementById('fecha-hoy').textContent = hoy.toLocaleDateString('es-MX
 
 let tab='resumen', editIdx=null, pendientes=[];
 
-// ── CARGA CON JSONP (evita CORS en archivos locales) ──────
+// ── CARGA DE DATOS ──────────────────────────────────────
 function cargarDatos() {
   setStatus('cargando','Conectando con Google Sheet...');
-  // Usamos JSONP: inyectamos un <script> que llama al Apps Script
-  // El Apps Script debe devolver JSON plano (ya lo hace con doGet)
+  // Intentar fetch directo primero (funciona desde GitHub Pages)
+  fetch(SCRIPT_URL)
+    .then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    })
+    .then(function(data){
+      procesarDatos(data);
+    })
+    .catch(function(){
+      // Si fetch falla, intentar JSONP como fallback
+      intentarJSONP();
+    });
+}
+
+function intentarJSONP() {
   var callbackName = 'cb_' + Date.now();
   var script = document.createElement('script');
+  var done = false;
   var timeout = setTimeout(function(){
-    // Si tarda más de 8s, cargar ejemplos
-    if(window[callbackName]) delete window[callbackName];
+    if(done) return;
+    done = true;
+    delete window[callbackName];
     script.remove();
-    setStatus('error','No se pudo conectar — verifica que el Apps Script esté publicado correctamente');
+    setStatus('error','No se pudo conectar — haz clic en Actualizar para reintentar');
     cargarEjemplos();
-  }, 8000);
-
+  }, 10000);
   window[callbackName] = function(data) {
+    if(done) return;
+    done = true;
     clearTimeout(timeout);
     delete window[callbackName];
     script.remove();
-    try {
-      procesarDatos(data);
-    } catch(e) {
-      setStatus('error','Error al procesar datos: ' + e.message);
-      cargarEjemplos();
-    }
+    procesarDatos(data);
   };
-
-  // Apps Script con callback para JSONP
   script.src = SCRIPT_URL + '?callback=' + callbackName;
   script.onerror = function(){
+    if(done) return;
+    done = true;
     clearTimeout(timeout);
     delete window[callbackName];
-    // Fallback: intentar fetch normal
-    intentarFetch();
+    setStatus('error','Error de conexión — verifica tu Apps Script');
+    cargarEjemplos();
   };
   document.head.appendChild(script);
 }
 
 function intentarFetch() {
-  setStatus('cargando','Intentando conexión alternativa...');
   fetch(SCRIPT_URL)
     .then(function(r){ return r.json(); })
     .then(function(data){ procesarDatos(data); })
     .catch(function(e){
-      setStatus('error','Sin conexión al Sheet — mostrando datos de ejemplo. Sube el archivo a GitHub Pages para conexión completa.');
+      setStatus('error','Sin conexión al Sheet');
       cargarEjemplos();
     });
 }
