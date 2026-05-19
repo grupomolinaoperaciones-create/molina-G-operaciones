@@ -240,7 +240,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 // ══════════════════════════════════════════════════
 // CONFIGURACIÓN — pon aquí tu URL de Apps Script
 // ══════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9PQidfG4wgMsugYr_c3DNh5IWjadWKDnPboClm-1aqOwEtssP45rYtV4efryPgMAEdQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7weodFToGcXHUuys1oPCxLx3VvV9bsZRM4ukXG027v7dE6eEACXdVHz6kCOzMimVcFA/exec';
 
 // ══════════════════════════════════════════════════
 // GERENCIAS — extraídas dinámicamente del Sheet
@@ -417,30 +417,38 @@ function parseFecha(s){
 // ══════════════════════════════════════════════════
 function enviarAlSheet(accion, payload, callback){
   showToast('Guardando en Sheet...');
-  var cbName = 'mgsave_'+Date.now();
-  var script = document.createElement('script');
   payload.action = accion;
-  var params = Object.keys(payload).map(function(k){
-    return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);
-  }).join('&');
-  var done=false;
-  var timer=setTimeout(function(){
-    if(done)return; done=true; delete window[cbName];
-    if(script.parentNode)script.parentNode.removeChild(script);
-    showToast('⚠ Tiempo agotado al guardar'); setTimeout(hideToast,3000);
-  },15000);
-  window[cbName]=function(res){
-    if(done)return; done=true; clearTimeout(timer); delete window[cbName];
-    if(script.parentNode)script.parentNode.removeChild(script);
+
+  // Usamos iframe oculto para evitar bloqueos CORS en escritura
+  var iframeName = 'mgframe_'+Date.now();
+  var iframe = document.createElement('iframe');
+  iframe.name = iframeName;
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+
+  var form = document.createElement('form');
+  form.method = 'GET';
+  form.action = SCRIPT_URL;
+  form.target = iframeName;
+
+  Object.keys(payload).forEach(function(k){
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = k;
+    input.value = payload[k];
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+
+  // Esperar 3 segundos y asumir éxito (iframe no expone respuesta por CORS)
+  setTimeout(function(){
     hideToast();
-    if(callback) callback(res);
-  };
-  script.src=SCRIPT_URL+'?callback='+cbName+'&'+params+'&t='+Date.now();
-  script.onerror=function(){
-    if(done)return; done=true; clearTimeout(timer); delete window[cbName];
-    showToast('⚠ Error de red al guardar'); setTimeout(hideToast,3000);
-  };
-  document.head.appendChild(script);
+    if(form.parentNode) form.parentNode.removeChild(form);
+    if(iframe.parentNode) iframe.parentNode.removeChild(iframe);
+    if(callback) callback({ok:true});
+  }, 3000);
 }
 
 function showToast(msg){ var t=document.getElementById('saving-toast'); t.textContent=msg; t.style.display='block'; }
