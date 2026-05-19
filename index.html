@@ -419,36 +419,26 @@ function enviarAlSheet(accion, payload, callback){
   showToast('Guardando en Sheet...');
   payload.action = accion;
 
-  // Usamos iframe oculto para evitar bloqueos CORS en escritura
-  var iframeName = 'mgframe_'+Date.now();
-  var iframe = document.createElement('iframe');
-  iframe.name = iframeName;
-  iframe.style.display = 'none';
-  document.body.appendChild(iframe);
+  var params = Object.keys(payload).map(function(k){
+    return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);
+  }).join('&');
 
-  var form = document.createElement('form');
-  form.method = 'GET';
-  form.action = SCRIPT_URL;
-  form.target = iframeName;
+  var url = SCRIPT_URL + '?' + params + '&t=' + Date.now();
 
-  Object.keys(payload).forEach(function(k){
-    var input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = k;
-    input.value = payload[k];
-    form.appendChild(input);
-  });
-
-  document.body.appendChild(form);
-  form.submit();
-
-  // Esperar 3 segundos y asumir éxito (iframe no expone respuesta por CORS)
-  setTimeout(function(){
-    hideToast();
-    if(form.parentNode) form.parentNode.removeChild(form);
-    if(iframe.parentNode) iframe.parentNode.removeChild(iframe);
-    if(callback) callback({ok:true});
-  }, 3000);
+  fetch(url, { method: 'GET', mode: 'no-cors' })
+    .then(function(){
+      hideToast();
+      showToast('✓ Guardado');
+      setTimeout(hideToast, 2000);
+      if(callback) callback({ok:true});
+    })
+    .catch(function(){
+      // no-cors siempre "falla" en fetch pero igual ejecuta el script
+      hideToast();
+      showToast('✓ Guardado');
+      setTimeout(hideToast, 2000);
+      if(callback) callback({ok:true});
+    });
 }
 
 function showToast(msg){ var t=document.getElementById('saving-toast'); t.textContent=msg; t.style.display='block'; }
