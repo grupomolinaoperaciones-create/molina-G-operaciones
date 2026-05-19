@@ -71,6 +71,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pri-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
 .action-btn{background:transparent;border:none;cursor:pointer;color:var(--gris);padding:4px;border-radius:6px;font-size:14px}
 .action-btn:hover{color:var(--vino);background:var(--vino-light)}
+/* inline edit selects in table */
+.inline-sel{font-size:11px;border:1px solid var(--crema-dark);border-radius:6px;padding:3px 6px;background:var(--crema);color:var(--text);cursor:pointer}
+.inline-pct{font-size:11px;border:1px solid var(--crema-dark);border-radius:6px;padding:3px 6px;background:var(--crema);color:var(--text);width:62px}
 .kanban-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .k-col{background:var(--crema);border:1px solid var(--crema-dark);border-radius:10px;padding:10px}
 .k-header{font-size:12px;font-weight:500;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
@@ -92,14 +95,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .range-val{font-size:12px;font-weight:500;color:var(--vino);min-width:32px}
 .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem}
 .btn-save{background:var(--vino);color:#FAF6EF;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:500;cursor:pointer}
+.btn-save:disabled{opacity:.6;cursor:default}
 .btn-cancel{background:transparent;border:1px solid var(--crema-dark);border-radius:8px;padding:8px 16px;font-size:13px;color:var(--gris);cursor:pointer}
 .hidden{display:none}
+.saving-toast{position:fixed;bottom:24px;right:24px;background:var(--vino);color:#FAF6EF;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:200;display:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 @media(max-width:700px){.metrics{grid-template-columns:repeat(2,1fr)}.ger-grid{grid-template-columns:1fr}.kanban-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 <div class="container">
-
   <div class="topbar">
     <div class="brand">
       <div class="logo-circle">
@@ -133,6 +137,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="metrics" id="metrics-row"></div>
 
+  <!-- RESUMEN -->
   <div id="vista-resumen">
     <p class="section-title">Avance por gerencia</p>
     <div class="ger-grid" id="ger-grid"></div>
@@ -150,15 +155,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 
+  <!-- TABLA -->
   <div id="vista-tabla" class="hidden">
     <div class="toolbar">
       <div class="filters">
-        <select class="fsel" id="f-area" onchange="renderAll()">
-          <option value="">Todas las gerencias</option>
-          <option>Mantenimiento eléctrico</option><option>Taller automotriz</option>
-          <option>Maquinaria agrícola</option><option>Construcciones</option>
-          <option>Calidad</option><option>Empaques de uva</option>
-        </select>
+        <select class="fsel" id="f-area" onchange="renderAll()"><option value="">Todas las gerencias</option></select>
         <select class="fsel" id="f-est" onchange="renderAll()">
           <option value="">Todos los estatus</option>
           <option>Pendiente</option><option>En proceso</option><option>Completado</option><option>Atrasado</option>
@@ -167,17 +168,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <option value="">Todas las prioridades</option>
           <option>Alta</option><option>Media</option><option>Baja</option>
         </select>
-        <select class="fsel" id="f-campo" onchange="renderAll()">
-          <option value="">Todos los campos</option>
-          <option>Las Mercedes</option>
-          <option>La Navidad</option>
-          <option>Los Vergeles</option>
-          <option>Santa María</option>
-          <option>Don Roberto</option>
-        </select>
-        <select class="fsel" id="f-resp" onchange="renderAll()">
-          <option value="">Todos los responsables</option>
-        </select>
+        <select class="fsel" id="f-campo" onchange="renderAll()"><option value="">Todos los campos</option></select>
+        <select class="fsel" id="f-resp" onchange="renderAll()"><option value="">Todos los responsables</option></select>
         <input class="finput" id="f-bus" placeholder="Buscar..." oninput="renderAll()">
         <button class="fsel" onclick="limpiarFiltros()" style="cursor:pointer;color:var(--gris)">✕ Limpiar</button>
       </div>
@@ -186,16 +178,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="table-wrap">
       <table class="data-table">
         <thead><tr>
-          <th style="width:20%">Pendiente</th><th style="width:14%">Gerencia</th>
-          <th style="width:10%">Campo</th><th style="width:8%">Prioridad</th>
-          <th style="width:10%">Estatus</th><th style="width:10%">Responsable</th>
-          <th style="width:12%">% Avance</th><th style="width:7%">Fecha</th><th style="width:5%"></th>
+          <th style="width:20%">Pendiente</th>
+          <th style="width:14%">Gerencia</th>
+          <th style="width:9%">Campo</th>
+          <th style="width:7%">Prioridad</th>
+          <th style="width:11%">Estatus</th>
+          <th style="width:10%">Responsable</th>
+          <th style="width:13%">% Avance</th>
+          <th style="width:7%">Fecha</th>
+          <th style="width:9%">Acciones</th>
         </tr></thead>
         <tbody id="tabla-body"></tbody>
       </table>
     </div>
   </div>
 
+  <!-- KANBAN -->
   <div id="vista-kanban" class="hidden">
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
       <button class="add-btn" onclick="openModal()">+ Nuevo pendiente</button>
@@ -203,16 +201,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="kanban-grid" id="kanban-body"></div>
   </div>
 
+  <!-- MODAL -->
   <div class="modal-bg" id="modal-bg">
     <div class="modal-box">
       <p class="modal-title" id="modal-ttl">Registrar nuevo pendiente</p>
       <div class="form-grid">
-        <div class="form-group full"><label class="form-label">Descripción</label><input class="form-input" id="m-desc" placeholder="Describe el pendiente..."></div>
-        <div class="form-group"><label class="form-label">Gerencia</label>
-          <select class="form-input" id="m-gcia">
-            <option>Mantenimiento eléctrico</option><option>Taller automotriz</option>
-            <option>Maquinaria agrícola</option><option>Construcciones</option>
-            <option>Calidad</option><option>Empaques de uva</option>
+        <div class="form-group full"><label class="form-label">Descripción *</label><input class="form-input" id="m-desc" placeholder="Describe el pendiente..."></div>
+        <div class="form-group">
+          <label class="form-label">Gerencia</label>
+          <select class="form-input" id="m-gcia"></select>
+        </div>
+        <div class="form-group"><label class="form-label">Campo</label>
+          <select class="form-input" id="m-campo">
+            <option>Las Mercedes</option><option>La Navidad</option>
+            <option>Los Vergeles</option><option>Santa Maria</option><option>Don Roberto</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Responsable</label><input class="form-input" id="m-resp" placeholder="Nombre"></div>
@@ -222,181 +224,240 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="form-group full"><label class="form-label">% de avance</label>
           <div class="range-wrap"><input type="range" min="0" max="100" step="5" id="m-pct" value="0" oninput="document.getElementById('pct-lbl').textContent=this.value+'%'"><span class="range-val" id="pct-lbl">0%</span></div>
         </div>
-        <div class="form-group full"><label class="form-label">Comentario</label><input class="form-input" id="m-avance" placeholder="Último avance registrado..."></div>
+        <div class="form-group full"><label class="form-label">Comentario / Último avance</label><input class="form-input" id="m-avance" placeholder="Notas adicionales..."></div>
       </div>
       <div class="form-actions">
         <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-        <button class="btn-save" onclick="guardar()">Guardar</button>
+        <button class="btn-save" id="btn-guardar" onclick="guardar()">Guardar</button>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-// ── TU URL DE APPS SCRIPT ─────────────────────────────────
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7weodFToGcXHUuys1oPCxLx3VvV9bsZRM4ukXG027v7dE6eEACXdVHz6kCOzMimVcFA/exec';
+<div class="saving-toast" id="saving-toast">Guardando en Sheet...</div>
 
-const GERENCIAS = ['Mantenimiento eléctrico','Taller automotriz','Maquinaria agrícola','Construcciones','Calidad','Empaques de uva'];
-const GER_ICONS = {'Mantenimiento eléctrico':'⚡','Taller automotriz':'🚗','Maquinaria agrícola':'🚜','Construcciones':'🏗','Calidad':'✅','Empaques de uva':'📦'};
-const COL_MAP = {
-  id:          ['id del pendiente','id pendiente','id','folio','clave'],
-  campo:       ['campo'],
-  gerencia:    ['gerencia'],
-  desc:        ['descripci','pendiente','descripcion'],
-  responsable: ['responsable'],
-  prioridad:   ['prioridad'],
-  fecha:       ['fecha'],
-  estatus:     ['estatus','status','estado'],
-  pct:         ['avance','%','porcentaje'],
-  avance:      ['comentario','nota','observaci'],
+<script>
+// ══════════════════════════════════════════════════
+// CONFIGURACIÓN — pon aquí tu URL de Apps Script
+// ══════════════════════════════════════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzxjLgLTI6yfCL98x7qt2a5Q8AZM6QCY42MczlBUaRkottVpzc4OiLUI6KBsNNm3v-Brg/exec';
+
+// ══════════════════════════════════════════════════
+// GERENCIAS — extraídas dinámicamente del Sheet
+// (se poblarán automáticamente)
+// ══════════════════════════════════════════════════
+const GER_ICONS = {
+  'mantenimiento electrico':'⚡','mantenimiento eléctrico':'⚡',
+  'taller automotriz':'🚗','maquinaria agricola':'🚜','maquinaria agrícola':'🚜',
+  'construcciones':'🏗','calidad':'✅','empaque de uva':'📦','empaques de uva':'📦',
+  'empaque uva':'📦'
 };
 
 const hoy = new Date();
 document.getElementById('fecha-hoy').textContent = hoy.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-let tab='resumen', editIdx=null, pendientes=[];
+let tab = 'resumen', editIdx = null, editRowNum = null, pendientes = [], gerencias = [];
 
-// ── CARGA DE DATOS ──────────────────────────────────────
-function cargarDatos() {
+// Normaliza texto para comparaciones: minúsculas sin acentos
+function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
+
+// ══════════════════════════════════════════════════
+// CARGA DE DATOS
+// ══════════════════════════════════════════════════
+function cargarDatos(){
   setStatus('cargando','Conectando con Google Sheet...');
-  var callbackName = 'mgcb_' + Date.now();
+  var cbName = 'mgcb_' + Date.now();
   var script = document.createElement('script');
   var done = false;
-
   var timer = setTimeout(function(){
-    if(done) return;
-    done = true;
-    delete window[callbackName];
-    if(script.parentNode) script.parentNode.removeChild(script);
+    if(done) return; done=true;
+    delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script);
     setStatus('error','Tiempo agotado — haz clic en Actualizar para reintentar');
-    cargarEjemplos();
   }, 12000);
 
-  window[callbackName] = function(data) {
-    if(done) return;
-    done = true;
-    clearTimeout(timer);
-    delete window[callbackName];
+  window[cbName] = function(data){
+    if(done) return; done=true;
+    clearTimeout(timer); delete window[cbName];
     if(script.parentNode) script.parentNode.removeChild(script);
-    try { procesarDatos(data); }
-    catch(e){ setStatus('error','Error procesando datos: '+e.message); cargarEjemplos(); }
+    try{ procesarDatos(data); }
+    catch(e){ setStatus('error','Error procesando datos: '+e.message); }
   };
-
-  script.src = SCRIPT_URL + '?callback=' + callbackName + '&t=' + Date.now();
+  script.src = SCRIPT_URL + '?callback=' + cbName + '&t=' + Date.now();
   script.onerror = function(){
-    if(done) return;
-    done = true;
-    clearTimeout(timer);
-    delete window[callbackName];
-    setStatus('error','Error de red — verifica tu conexión');
-    cargarEjemplos();
+    if(done) return; done=true; clearTimeout(timer); delete window[cbName];
+    setStatus('error','Error de red — verifica la URL del Apps Script');
   };
   document.head.appendChild(script);
 }
 
-function intentarFetch() {
-  cargarDatos();
-}
-
-function procesarDatos(json) {
-  if (!Array.isArray(json) || json.length === 0) {
-    setStatus('ok','Sheet conectado ✓ — aún sin registros. Agrega pendientes desde el Form o con el botón.');
-    pendientes = [];
-    renderAll();
-    return;
+// ══════════════════════════════════════════════════
+// PROCESAMIENTO  ← AQUÍ ESTABA EL BUG PRINCIPAL
+// ══════════════════════════════════════════════════
+function procesarDatos(json){
+  if(!Array.isArray(json) || json.length===0){
+    setStatus('ok','Sheet conectado ✓ — sin registros aún.');
+    pendientes=[]; renderAll(); return;
   }
+
   var keys = Object.keys(json[0]);
-  var map = {};
-  Object.keys(COL_MAP).forEach(function(field){
-    keys.forEach(function(k){
-      if(map[field]) return;
-      var kl = k.toLowerCase();
-      COL_MAP[field].forEach(function(m){ if(kl.includes(m)) map[field]=k; });
-    });
-  });
-  // Mapear todas las filas
-  var todas = json.map(function(row){
-    var pctRaw = map.pct ? String(row[map.pct]||'0') : '0';
+
+  // Mapeo flexible de columnas
+  function findCol(patterns){
+    for(var i=0;i<keys.length;i++){
+      var kn = norm(keys[i]);
+      for(var j=0;j<patterns.length;j++){
+        if(kn.includes(patterns[j])) return keys[i];
+      }
+    }
+    return null;
+  }
+
+  var colMap = {
+    rowNum:  findCol(['fila','row','#']),          // número de fila del sheet (si existe)
+    id:      findCol(['id del pendiente','id pendiente','id','folio']),
+    campo:   findCol(['campo']),
+    gerencia:findCol(['gerencia']),
+    desc:    findCol(['descripci','descripcion','pendiente']),
+    resp:    findCol(['responsable']),
+    pri:     findCol(['prioridad']),
+    fecha:   findCol(['fecha']),
+    estatus: findCol(['estatus','status','estado']),
+    pct:     findCol(['avance','%','porcentaje']),
+    comment: findCol(['comentario','nota','observaci']),
+    marca:   findCol(['marca','timestamp']),
+  };
+
+  pendientes = json.map(function(row, idx){
+    var pctRaw = colMap.pct ? String(row[colMap.pct]||'0') : '0';
     var pctFloat = parseFloat(pctRaw.replace(/[^0-9.]/g,''))||0;
-    // Si viene en decimal (0-1) convertir a porcentaje (0-100)
-    var pctNum = pctFloat <= 1 && pctFloat > 0 ? Math.round(pctFloat*100) : Math.round(pctFloat);
-    var est = map.estatus ? String(row[map.estatus]||'Pendiente').trim() : 'Pendiente';
+    var pctNum = pctFloat<=1 && pctFloat>0 ? Math.round(pctFloat*100) : Math.round(pctFloat);
+    var est = colMap.estatus ? String(row[colMap.estatus]||'Pendiente').trim() : 'Pendiente';
     if(est==='Completado') pctNum=100;
+
     return {
-      id:          map.id ? String(row[map.id]||'').trim().toUpperCase() : '',
-      campo:       map.campo ? String(row[map.campo]||'').trim() : '',
-      desc:        map.desc ? String(row[map.desc]||'').trim() : '',
-      gerencia:    map.gerencia ? String(row[map.gerencia]||'').trim() : '',
-      responsable: map.responsable ? String(row[map.responsable]||'').trim() : '',
-      prioridad:   map.prioridad ? String(row[map.prioridad]||'Media').trim() : 'Media',
-      fecha:       map.fecha ? parseFecha(String(row[map.fecha]||'')) : '',
-      estatus:     est,
-      avance:      map.avance ? String(row[map.avance]||'').trim() : '',
-      pct:         pctNum,
+      _rowNum: idx+2,  // fila real en Sheet (asumiendo fila 1 = encabezado)
+      id:      colMap.id     ? String(row[colMap.id]||'').trim()      : '',
+      campo:   colMap.campo  ? String(row[colMap.campo]||'').trim()   : '',
+      desc:    colMap.desc   ? String(row[colMap.desc]||'').trim()    : '',
+      gerencia:colMap.gerencia? String(row[colMap.gerencia]||'').trim(): '',
+      responsable: colMap.resp ? String(row[colMap.resp]||'').trim()  : '',
+      prioridad:   colMap.pri  ? String(row[colMap.pri]||'Media').trim(): 'Media',
+      fecha:   colMap.fecha  ? parseFecha(String(row[colMap.fecha]||'')): '',
+      estatus: est,
+      avance:  colMap.comment? String(row[colMap.comment]||'').trim() : '',
+      pct:     pctNum,
     };
-  }).filter(function(p){ return p.desc; });
+  }).filter(function(p){ return p.desc; });  // ← YA NO filtra por ID único; mantiene TODOS
 
-  // Agrupar por ID — solo el registro mas reciente de cada ID
-  var porId = {};
-  todas.forEach(function(p){
-    var key = p.id || p.desc;
-    porId[key] = p;
+  // Extraer gerencias únicas del sheet (sin duplicados, sin importar capitalización)
+  var gerSet = {};
+  pendientes.forEach(function(p){
+    if(p.gerencia){ var n=norm(p.gerencia); if(!gerSet[n]) gerSet[n]=p.gerencia; }
   });
-  pendientes = Object.values(porId);
+  gerencias = Object.values(gerSet).sort();
 
-  var total = todas.length;
-  var unicos = pendientes.length;
-  var act = total - unicos;
-  var msg = 'Sheet conectado ✓ · '+unicos+' pendientes';
-  if(act > 0) msg += ' · '+act+' actualización'+( act!==1?'es':'');
-  msg += ' · '+new Date().toLocaleTimeString('es-MX');
+  // Poblar filtros dinámicamente
+  poblarFiltros();
+
+  var msg = 'Sheet conectado ✓ · '+pendientes.length+' pendientes · '+new Date().toLocaleTimeString('es-MX');
   setStatus('ok', msg);
   renderAll();
 }
 
-function cargarEjemplos(){
-  pendientes=[
-    {desc:'Revisión de transformador principal',gerencia:'Mantenimiento eléctrico',responsable:'Carlos Ruiz',prioridad:'Alta',fecha:'2026-05-20',estatus:'En proceso',avance:'Refacción solicitada',pct:40},
-    {desc:'Mantenimiento preventivo camioneta F-250',gerencia:'Taller automotriz',responsable:'Luis Méndez',prioridad:'Media',fecha:'2026-05-22',estatus:'Pendiente',avance:'',pct:0},
-    {desc:'Calibración de tractores John Deere',gerencia:'Maquinaria agrícola',responsable:'Ernesto López',prioridad:'Alta',fecha:'2026-05-18',estatus:'Atrasado',avance:'Pendiente técnico',pct:15},
-    {desc:'Revisión estructura bodega norte',gerencia:'Construcciones',responsable:'Ramón Torres',prioridad:'Media',fecha:'2026-05-28',estatus:'En proceso',avance:'Inicio el lunes',pct:60},
-    {desc:'Auditoría interna proceso empaque',gerencia:'Calidad',responsable:'Ana García',prioridad:'Alta',fecha:'2026-05-19',estatus:'Completado',avance:'Reporte enviado',pct:100},
-    {desc:'Inventario cajas temporada 2026',gerencia:'Empaques de uva',responsable:'Pedro Soto',prioridad:'Media',fecha:'2026-05-25',estatus:'Pendiente',avance:'',pct:0},
-    {desc:'Reparación tablero eléctrico sector 3',gerencia:'Mantenimiento eléctrico',responsable:'Carlos Ruiz',prioridad:'Alta',fecha:'2026-05-17',estatus:'Atrasado',avance:'Esperando cotización',pct:5},
-    {desc:'Calibración báscula empaque',gerencia:'Empaques de uva',responsable:'Pedro Soto',prioridad:'Alta',fecha:'2026-05-21',estatus:'En proceso',avance:'Técnico agendado',pct:30},
-    {desc:'Certificación ISO cosecha',gerencia:'Calidad',responsable:'Ana García',prioridad:'Alta',fecha:'2026-06-10',estatus:'En proceso',avance:'Doc al 70%',pct:70},
-    {desc:'Revisión bomba hidráulica',gerencia:'Maquinaria agrícola',responsable:'Ernesto López',prioridad:'Media',fecha:'2026-05-30',estatus:'Pendiente',avance:'',pct:0},
-    {desc:'Instalación riego sector 4',gerencia:'Construcciones',responsable:'Ramón Torres',prioridad:'Media',fecha:'2026-06-05',estatus:'Pendiente',avance:'',pct:0},
-    {desc:'Cambio de aceite flota',gerencia:'Taller automotriz',responsable:'Luis Méndez',prioridad:'Baja',fecha:'2026-06-01',estatus:'Pendiente',avance:'',pct:0},
-  ];
-  renderAll();
+function poblarFiltros(){
+  // Gerencias
+  var fArea = document.getElementById('f-area');
+  var mGcia = document.getElementById('m-gcia');
+  fArea.innerHTML = '<option value="">Todas las gerencias</option>';
+  mGcia.innerHTML = '';
+  gerencias.forEach(function(g){
+    var o1=document.createElement('option'); o1.value=g; o1.textContent=g; fArea.appendChild(o1);
+    var o2=document.createElement('option'); o2.value=g; o2.textContent=g; mGcia.appendChild(o2);
+  });
+
+  // Campos únicos
+  var campoSet={};
+  pendientes.forEach(function(p){ if(p.campo) campoSet[p.campo]=1; });
+  var fCampo=document.getElementById('f-campo');
+  var prev=fCampo.value;
+  fCampo.innerHTML='<option value="">Todos los campos</option>';
+  Object.keys(campoSet).sort().forEach(function(c){
+    var o=document.createElement('option'); o.value=c; o.textContent=c; if(c===prev)o.selected=true; fCampo.appendChild(o);
+  });
+
+  // Responsables
+  var respSet={};
+  pendientes.forEach(function(p){ if(p.responsable) respSet[p.responsable]=1; });
+  var fResp=document.getElementById('f-resp');
+  var prevR=fResp.value;
+  fResp.innerHTML='<option value="">Todos los responsables</option>';
+  Object.keys(respSet).sort().forEach(function(r){
+    var o=document.createElement('option'); o.value=r; o.textContent=r; if(r===prevR)o.selected=true; fResp.appendChild(o);
+  });
 }
 
 function parseFecha(s){
   if(!s) return '';
-  s = String(s).trim();
-  if(!s || s==='0' || s==='') return '';
-  // Intentar parsear con Date directamente (maneja formatos largos de Google)
-  var d = new Date(s);
+  s=String(s).trim();
+  if(!s||s==='0') return '';
+  var d=new Date(s);
   if(!isNaN(d.getTime())){
-    var anio = d.getFullYear();
-    var mes = String(d.getMonth()+1).padStart(2,'0');
-    var dia = String(d.getDate()).padStart(2,'0');
-    return anio+'-'+mes+'-'+dia;
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
-  // Formato DD/MM/YYYY
-  var p = s.split(/[\/\-]/);
+  var p=s.split(/[\/\-]/);
   if(p.length===3){
     if(p[0].length===4) return s;
     return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
   }
   return '';
 }
+
+// ══════════════════════════════════════════════════
+// ESCRITURA AL SHEET — POST al Apps Script
+// ══════════════════════════════════════════════════
+function enviarAlSheet(accion, payload, callback){
+  showToast('Guardando en Sheet...');
+  var cbName = 'mgsave_'+Date.now();
+  var script = document.createElement('script');
+  payload.action = accion;
+  var params = Object.keys(payload).map(function(k){
+    return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);
+  }).join('&');
+  var done=false;
+  var timer=setTimeout(function(){
+    if(done)return; done=true; delete window[cbName];
+    if(script.parentNode)script.parentNode.removeChild(script);
+    showToast('⚠ Tiempo agotado al guardar'); setTimeout(hideToast,3000);
+  },15000);
+  window[cbName]=function(res){
+    if(done)return; done=true; clearTimeout(timer); delete window[cbName];
+    if(script.parentNode)script.parentNode.removeChild(script);
+    hideToast();
+    if(callback) callback(res);
+  };
+  script.src=SCRIPT_URL+'?callback='+cbName+'&'+params+'&t='+Date.now();
+  script.onerror=function(){
+    if(done)return; done=true; clearTimeout(timer); delete window[cbName];
+    showToast('⚠ Error de red al guardar'); setTimeout(hideToast,3000);
+  };
+  document.head.appendChild(script);
+}
+
+function showToast(msg){ var t=document.getElementById('saving-toast'); t.textContent=msg; t.style.display='block'; }
+function hideToast(){ document.getElementById('saving-toast').style.display='none'; }
+
+// ══════════════════════════════════════════════════
+// STATUS
+// ══════════════════════════════════════════════════
 function setStatus(estado,msg){
   var d=document.getElementById('sdot');
   d.className='sdot'+(estado==='cargando'?' cargando':estado==='error'?' error':'');
   document.getElementById('stxt').textContent=msg;
 }
+
+// ══════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════
 function setTab(t){
   tab=t;
   ['resumen','tabla','kanban'].forEach(function(v){
@@ -405,13 +466,21 @@ function setTab(t){
   });
   renderAll();
 }
-function isAtrasado(p){return p.fecha&&p.estatus!=='Completado'&&new Date(p.fecha+'T12:00:00')<hoy;}
-function pctColor(n){if(n>=80) return'#3B6D11';if(n>=40) return'#1A4F82';if(n>0) return'#C87D1A';return'#B83232';}
-function badgeEst(e){var m={Pendiente:'b-pend','En proceso':'b-proc',Completado:'b-done',Atrasado:'b-atras'};return'<span class="badge '+(m[e]||'b-pend')+'">'+e+'</span>';}
-function priDot(p){var c={Alta:'#B83232',Media:'#C87D1A',Baja:'#4A7C3F'};return'<span class="pri-dot" style="background:'+(c[p]||c.Media)+'"></span>'+p;}
-function fmtFecha(f){if(!f) return'—';return new Date(f+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'});}
+
+// ══════════════════════════════════════════════════
+// HELPERS RENDER
+// ══════════════════════════════════════════════════
+function isAtrasado(p){ return p.fecha&&p.estatus!=='Completado'&&new Date(p.fecha+'T12:00:00')<hoy; }
+function pctColor(n){ if(n>=80)return'#3B6D11'; if(n>=40)return'#1A4F82'; if(n>0)return'#C87D1A'; return'#B83232'; }
+function badgeEst(e){ var m={Pendiente:'b-pend','En proceso':'b-proc',Completado:'b-done',Atrasado:'b-atras'}; return'<span class="badge '+(m[e]||'b-pend')+'">'+e+'</span>'; }
+function priDot(p){ var c={Alta:'#B83232',Media:'#C87D1A',Baja:'#4A7C3F'}; return'<span class="pri-dot" style="background:'+(c[p]||c.Media)+'"></span>'+p; }
+function fmtFecha(f){ if(!f)return'—'; return new Date(f+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'}); }
+function gerIcon(g){ return GER_ICONS[norm(g)]||'📌'; }
+
 function gerStats(g){
-  var items=pendientes.filter(function(p){return p.gerencia===g;});
+  // Compara gerencia sin importar mayúsculas/acentos ← fix del bug de filtrado
+  var ng=norm(g);
+  var items=pendientes.filter(function(p){ return norm(p.gerencia)===ng; });
   if(!items.length) return null;
   var total=items.length,done=0,proc=0,pend=0,atr=0,sumP=0;
   items.forEach(function(p){
@@ -421,21 +490,36 @@ function gerStats(g){
     else pend++;
     sumP+=(p.pct||0);
   });
-  return{total:total,done:done,proc:proc,pend:pend,atr:atr,avg:Math.round(sumP/total)};
+  return{total,done,proc,pend,atr,avg:Math.round(sumP/total)};
 }
+
 function getFiltered(){
-  var area=(document.getElementById('f-area')||{value:''}).value;
-  var est=(document.getElementById('f-est')||{value:''}).value;
-  var pri=(document.getElementById('f-pri')||{value:''}).value;
-  var resp=(document.getElementById('f-resp')||{value:''}).value;
-  var campo=(document.getElementById('f-campo')||{value:''}).value;
-  var bus=((document.getElementById('f-bus')||{value:''}).value).toLowerCase();
+  var area=document.getElementById('f-area').value;
+  var est=document.getElementById('f-est').value;
+  var pri=document.getElementById('f-pri').value;
+  var resp=document.getElementById('f-resp').value;
+  var campo=document.getElementById('f-campo').value;
+  var bus=document.getElementById('f-bus').value.toLowerCase();
   return pendientes.filter(function(p){
-    return(!area||p.gerencia===area)&&(!est||p.estatus===est)&&(!pri||p.prioridad===pri)&&
-           (!resp||p.responsable===resp)&&(!campo||p.campo===campo)&&
-           (!bus||p.desc.toLowerCase().includes(bus)||p.responsable.toLowerCase().includes(bus));
+    return(!area||norm(p.gerencia)===norm(area))&&
+           (!est||p.estatus===est)&&
+           (!pri||p.prioridad===pri)&&
+           (!resp||p.responsable===resp)&&
+           (!campo||p.campo===campo)&&
+           (!bus||norm(p.desc).includes(norm(bus))||norm(p.responsable).includes(norm(bus)));
   });
 }
+
+// ══════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════
+function renderAll(){
+  renderMetrics();
+  if(tab==='resumen'){ renderGerencias(); renderResumenTabla(); }
+  else if(tab==='tabla') renderTabla();
+  else renderKanban();
+}
+
 function renderMetrics(){
   var t=pendientes.length,enP=0,atr=0,done=0,sumP=0;
   pendientes.forEach(function(p){
@@ -451,32 +535,34 @@ function renderMetrics(){
     '<div class="metric"><div class="metric-label">Atrasados</div><div class="metric-val" style="color:#B83232">'+atr+'</div></div>'+
     '<div class="metric"><div class="metric-label">Avance global</div><div class="metric-val" style="color:#3B6D11">'+avg+'%</div></div>';
 }
+
 function renderGerencias(){
-  document.getElementById('ger-grid').innerHTML=GERENCIAS.map(function(g){
-    var s=gerStats(g);if(!s) return'';
+  document.getElementById('ger-grid').innerHTML=gerencias.map(function(g){
+    var s=gerStats(g); if(!s)return'';
     var c=pctColor(s.avg);
     return'<div class="ger-card">'+
-      '<div class="ger-header"><div><div class="ger-name">'+GER_ICONS[g]+' '+g+'</div><div class="ger-count">'+s.total+' pendiente'+(s.total!==1?'s':'')+'</div></div>'+
+      '<div class="ger-header"><div><div class="ger-name">'+gerIcon(g)+' '+g+'</div><div class="ger-count">'+s.total+' pendiente'+(s.total!==1?'s':'')+'</div></div>'+
       '<div style="text-align:right"><div class="ger-pct" style="color:'+c+'">'+s.avg+'%</div><div class="ger-pct-label">avance</div></div></div>'+
       '<div class="prog-track"><div class="prog-fill" style="width:'+s.avg+'%;background:'+c+'"></div></div>'+
       '<div class="ger-stats">'+
-        '<span class="ger-stat"><span class="dot" style="background:#C87D1A"></span>'+s.pend+' pend.</span>'+
-        '<span class="ger-stat"><span class="dot" style="background:#1A4F82"></span>'+s.proc+' proc.</span>'+
-        (s.atr?'<span class="ger-stat"><span class="dot" style="background:#B83232"></span>'+s.atr+' atras.</span>':'')+
-        '<span class="ger-stat"><span class="dot" style="background:#3B6D11"></span>'+s.done+' comp.</span>'+
+      '<span class="ger-stat"><span class="dot" style="background:#C87D1A"></span>'+s.pend+' pend.</span>'+
+      '<span class="ger-stat"><span class="dot" style="background:#1A4F82"></span>'+s.proc+' proc.</span>'+
+      (s.atr?'<span class="ger-stat"><span class="dot" style="background:#B83232"></span>'+s.atr+' atras.</span>':'')+
+      '<span class="ger-stat"><span class="dot" style="background:#3B6D11"></span>'+s.done+' comp.</span>'+
       '</div></div>';
   }).join('');
 }
+
 function renderResumenTabla(){
-  document.getElementById('resumen-body').innerHTML=GERENCIAS.map(function(g){
+  document.getElementById('resumen-body').innerHTML=gerencias.map(function(g){
     var s=gerStats(g);
-    if(!s) return'<tr><td>'+GER_ICONS[g]+' '+g+'</td><td colspan="7" style="color:var(--gris);font-size:12px">Sin registros aún</td></tr>';
+    if(!s) return'<tr><td>'+gerIcon(g)+' '+g+'</td><td colspan="7" style="color:var(--gris);font-size:12px">Sin registros aún</td></tr>';
     var c=pctColor(s.avg);
     var alerta=s.atr>0?'<span class="badge b-atras">'+s.atr+' atrasado'+(s.atr!==1?'s':'')+'</span>':
       s.avg>=80?'<span class="badge b-done">Buen ritmo</span>':
       s.pend===s.total?'<span class="badge b-pend">Sin iniciar</span>':'<span class="badge b-proc">En curso</span>';
     return'<tr>'+
-      '<td><span style="font-weight:500">'+GER_ICONS[g]+' '+g+'</span></td>'+
+      '<td><span style="font-weight:500">'+gerIcon(g)+' '+g+'</span></td>'+
       '<td style="text-align:center;font-weight:500">'+s.total+'</td>'+
       '<td style="color:#7A4A0A">'+s.pend+'</td>'+
       '<td style="color:#1A4F82">'+s.proc+'</td>'+
@@ -486,108 +572,200 @@ function renderResumenTabla(){
       '<td>'+alerta+'</td></tr>';
   }).join('');
 }
+
 function renderTabla(){
-  var list=getFiltered(),tbody=document.getElementById('tabla-body');
-  if(!list.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--gris);padding:24px">Sin resultados</td></tr>';return;}
+  var list=getFiltered(), tbody=document.getElementById('tabla-body');
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--gris);padding:24px">Sin resultados</td></tr>'; return; }
   tbody.innerHTML=list.map(function(p){
-    var ri=pendientes.indexOf(p),atras=isAtrasado(p)&&p.estatus!=='Completado',c=pctColor(p.pct||0);
+    var ri=pendientes.indexOf(p);
+    var atras=isAtrasado(p)&&p.estatus!=='Completado';
+    var c=pctColor(p.pct||0);
     return'<tr>'+
       '<td><span style="font-weight:500">'+p.desc+'</span>'+(p.avance?'<div style="font-size:11px;color:var(--gris);margin-top:2px">'+p.avance+'</div>':'')+'</td>'+
-      '<td><span class="area-tag">'+p.gerencia+'</span></td>'+'<td style="font-size:12px;color:var(--gris)">'+( p.campo||'—')+'</td>'+
+      '<td><span class="area-tag">'+p.gerencia+'</span></td>'+
+      '<td style="font-size:12px;color:var(--gris)">'+(p.campo||'—')+'</td>'+
       '<td>'+priDot(p.prioridad)+'</td>'+
-      '<td>'+badgeEst(p.estatus)+'</td>'+
+      // Estatus inline editable
+      '<td><select class="inline-sel" onchange="actualizarCampo('+ri+',\'estatus\',this.value)">'+
+        ['Pendiente','En proceso','Completado','Atrasado'].map(function(e){
+          return'<option'+(p.estatus===e?' selected':'')+'>'+e+'</option>';
+        }).join('')+
+      '</select></td>'+
       '<td style="color:var(--gris)">'+p.responsable+'</td>'+
-      '<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:var(--crema-dark);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+(p.pct||0)+'%;background:'+c+';border-radius:3px"></div></div><span style="font-size:11px;font-weight:500;color:'+c+';min-width:28px">'+(p.pct||0)+'%</span></div></td>'+
+      // % avance inline editable
+      '<td>'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+        '<input type="number" class="inline-pct" min="0" max="100" step="5" value="'+(p.pct||0)+'" onchange="actualizarCampo('+ri+',\'pct\',this.value)">'+
+        '<div style="flex:1;height:6px;background:var(--crema-dark);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+(p.pct||0)+'%;background:'+c+';border-radius:3px"></div></div>'+
+        '</div>'+
+      '</td>'+
       '<td style="color:'+(atras?'#B83232':'var(--text)')+';font-size:12px">'+fmtFecha(p.fecha)+'</td>'+
       '<td>'+
-        '<button class="action-btn" onclick="editarItem('+ri+')" title="Editar">✏️</button>'+
-        '<button class="action-btn" onclick="avanzarEstatus('+ri+')" title="Cambiar">🔄</button>'+
-        '<button class="action-btn" onclick="eliminar('+ri+')" title="Eliminar">🗑</button>'+
+        '<button class="action-btn" onclick="editarItem('+ri+')" title="Editar todo">✏️</button>'+
       '</td></tr>';
   }).join('');
 }
+
 function renderKanban(){
   var list=getFiltered();
   var cols=['Pendiente','En proceso','Atrasado','Completado'];
   var cc={Pendiente:'#C87D1A','En proceso':'#1A4F82',Atrasado:'#B83232',Completado:'#3B6D11'};
   document.getElementById('kanban-body').innerHTML=cols.map(function(col){
-    var items=list.filter(function(p){return p.estatus===col;});
+    var items=list.filter(function(p){ return p.estatus===col; });
     var cards=items.map(function(p){
+      var ri=pendientes.indexOf(p);
       var c=pctColor(p.pct||0);
-      return'<div class="k-card"><div class="k-card-title">'+p.desc+'</div>'+
-        '<div class="k-card-meta"><span class="area-tag" style="font-size:10px">'+p.gerencia.split(' ')[0]+'</span>'+priDot(p.prioridad)+'</div>'+
-        '<div style="display:flex;align-items:center;gap:6px;margin-top:7px"><div style="flex:1;height:4px;background:var(--crema-dark);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+(p.pct||0)+'%;background:'+c+';border-radius:2px"></div></div>'+
-        '<span style="font-size:10px;font-weight:500;color:'+c+'">'+(p.pct||0)+'%</span></div></div>';
+      return'<div class="k-card">'+
+        '<div class="k-card-title">'+p.desc+'</div>'+
+        '<div class="k-card-meta"><span class="area-tag" style="font-size:10px">'+p.gerencia+'</span>'+priDot(p.prioridad)+'</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-top:7px">'+
+          '<div style="flex:1;height:4px;background:var(--crema-dark);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+(p.pct||0)+'%;background:'+c+';border-radius:2px"></div></div>'+
+          '<span style="font-size:10px;font-weight:500;color:'+c+'">'+(p.pct||0)+'%</span>'+
+        '</div>'+
+        '<div style="margin-top:8px;display:flex;gap:4px">'+
+          '<button class="action-btn" style="font-size:11px;padding:3px 8px;border:1px solid var(--crema-dark);border-radius:6px" onclick="editarItem('+ri+')">✏️ Editar</button>'+
+        '</div>'+
+      '</div>';
     }).join('')||'<div style="font-size:11px;color:var(--gris);text-align:center;padding:12px 0">Sin pendientes</div>';
     return'<div class="k-col"><div class="k-header"><span style="color:'+cc[col]+'">'+col+'</span><span class="k-count">'+items.length+'</span></div>'+cards+'</div>';
   }).join('');
 }
-function renderAll(){
-  actualizarFiltroResponsables();
-  renderMetrics();
-  if(tab==='resumen'){renderGerencias();renderResumenTabla();}
-  else if(tab==='tabla') renderTabla();
-  else renderKanban();
-}
 
-function actualizarFiltroResponsables(){
-  var sel=document.getElementById('f-resp');
-  if(!sel) return;
-  var actual=sel.value;
-  var lista=[];
-  pendientes.forEach(function(p){ if(p.responsable&&lista.indexOf(p.responsable)===-1) lista.push(p.responsable); });
-  lista.sort();
-  sel.innerHTML='<option value="">Todos los responsables</option>';
-  lista.forEach(function(r){ var o=document.createElement('option');o.value=r;o.textContent=r;if(r===actual)o.selected=true;sel.appendChild(o); });
-}
+// ══════════════════════════════════════════════════
+// ACTUALIZACIÓN INLINE (Estatus / % desde la tabla)
+// ══════════════════════════════════════════════════
+function actualizarCampo(idx, campo, valor){
+  var p = pendientes[idx];
+  if(campo==='pct') valor=parseInt(valor)||0;
+  p[campo] = valor;
+  if(campo==='estatus'&&valor==='Completado') p.pct=100;
 
-function limpiarFiltros(){
-  ['f-area','f-est','f-pri','f-campo','f-resp'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-  var b=document.getElementById('f-bus');if(b)b.value='';
+  // Guardar al Sheet
+  enviarAlSheet('update', {
+    rowNum: p._rowNum,
+    estatus: p.estatus,
+    pct: p.pct,
+    avance: p.avance
+  }, function(res){
+    renderAll();
+    if(res&&res.ok) setStatus('ok','Guardado ✓ · '+new Date().toLocaleTimeString('es-MX'));
+  });
   renderAll();
 }
+
+// ══════════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════════
 function openModal(){
   editIdx=null;
-  ['m-desc','m-resp','m-avance'].forEach(function(id){document.getElementById(id).value='';});
+  ['m-desc','m-resp','m-avance'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('m-fecha').value='';
   document.getElementById('m-pri').value='Alta';
   document.getElementById('m-est').value='Pendiente';
-  document.getElementById('m-gcia').value='Mantenimiento eléctrico';
   document.getElementById('m-pct').value=0;
   document.getElementById('pct-lbl').textContent='0%';
   document.getElementById('modal-ttl').textContent='Registrar nuevo pendiente';
   document.getElementById('modal-bg').classList.add('open');
 }
-function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
-document.getElementById('modal-bg').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function closeModal(){ document.getElementById('modal-bg').classList.remove('open'); }
+document.getElementById('modal-bg').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+
 function guardar(){
   var desc=document.getElementById('m-desc').value.trim();
-  if(!desc){document.getElementById('m-desc').style.borderColor='#B83232';return;}
+  if(!desc){ document.getElementById('m-desc').style.borderColor='#B83232'; return; }
   document.getElementById('m-desc').style.borderColor='';
-  var item={desc:desc,gerencia:document.getElementById('m-gcia').value,responsable:document.getElementById('m-resp').value||'Sin asignar',
-    prioridad:document.getElementById('m-pri').value,fecha:document.getElementById('m-fecha').value,
-    estatus:document.getElementById('m-est').value,avance:document.getElementById('m-avance').value,
-    pct:parseInt(document.getElementById('m-pct').value)};
-  if(editIdx!==null) pendientes[editIdx]=item; else pendientes.unshift(item);
-  closeModal();renderAll();
+
+  var pct=parseInt(document.getElementById('m-pct').value)||0;
+  var est=document.getElementById('m-est').value;
+  if(est==='Completado') pct=100;
+
+  var item={
+    desc:    desc,
+    gerencia:document.getElementById('m-gcia').value,
+    campo:   document.getElementById('m-campo').value,
+    responsable: document.getElementById('m-resp').value||'Sin asignar',
+    prioridad:   document.getElementById('m-pri').value,
+    fecha:   document.getElementById('m-fecha').value,
+    estatus: est,
+    avance:  document.getElementById('m-avance').value,
+    pct:     pct,
+  };
+
+  var btn=document.getElementById('btn-guardar');
+  btn.disabled=true; btn.textContent='Guardando...';
+
+  if(editIdx!==null){
+    // Editar registro existente
+    item._rowNum = pendientes[editIdx]._rowNum;
+    pendientes[editIdx] = item;
+    enviarAlSheet('update',{
+      rowNum:  item._rowNum,
+      desc:    item.desc,
+      gerencia:item.gerencia,
+      campo:   item.campo,
+      responsable: item.responsable,
+      prioridad:   item.prioridad,
+      fecha:   item.fecha,
+      estatus: item.estatus,
+      pct:     item.pct,
+      avance:  item.avance
+    }, function(res){
+      btn.disabled=false; btn.textContent='Guardar';
+      closeModal(); renderAll();
+      if(res&&res.ok) setStatus('ok','Actualizado ✓ · '+new Date().toLocaleTimeString('es-MX'));
+    });
+  } else {
+    // Nuevo registro — agregar fila al Sheet
+    enviarAlSheet('append',{
+      desc:    item.desc,
+      gerencia:item.gerencia,
+      campo:   item.campo,
+      responsable: item.responsable,
+      prioridad:   item.prioridad,
+      fecha:   item.fecha,
+      estatus: item.estatus,
+      pct:     item.pct,
+      avance:  item.avance
+    }, function(res){
+      btn.disabled=false; btn.textContent='Guardar';
+      closeModal();
+      // Recargar para obtener el nuevo _rowNum del Sheet
+      cargarDatos();
+      if(res&&res.ok) setStatus('ok','Pendiente guardado ✓ · '+new Date().toLocaleTimeString('es-MX'));
+    });
+    // Mostrar localmente de inmediato
+    item._rowNum=9999;
+    pendientes.unshift(item);
+    renderAll();
+  }
 }
+
 function editarItem(idx){
-  editIdx=idx;var p=pendientes[idx];
-  document.getElementById('m-desc').value=p.desc;document.getElementById('m-gcia').value=p.gerencia;
-  document.getElementById('m-resp').value=p.responsable;document.getElementById('m-pri').value=p.prioridad;
-  document.getElementById('m-fecha').value=p.fecha;document.getElementById('m-est').value=p.estatus;
-  document.getElementById('m-avance').value=p.avance;document.getElementById('m-pct').value=p.pct||0;
+  editIdx=idx;
+  var p=pendientes[idx];
+  document.getElementById('m-desc').value=p.desc;
+  // Asegurar que la opción de gerencia exista
+  var gSel=document.getElementById('m-gcia');
+  var found=false;
+  for(var i=0;i<gSel.options.length;i++){ if(gSel.options[i].value===p.gerencia){gSel.selectedIndex=i;found=true;break;} }
+  if(!found){var o=document.createElement('option');o.value=p.gerencia;o.textContent=p.gerencia;gSel.appendChild(o);gSel.value=p.gerencia;}
+  document.getElementById('m-resp').value=p.responsable;
+  document.getElementById('m-pri').value=p.prioridad;
+  document.getElementById('m-fecha').value=p.fecha;
+  document.getElementById('m-est').value=p.estatus;
+  document.getElementById('m-avance').value=p.avance;
+  document.getElementById('m-pct').value=p.pct||0;
   document.getElementById('pct-lbl').textContent=(p.pct||0)+'%';
   document.getElementById('modal-ttl').textContent='Editar pendiente';
   document.getElementById('modal-bg').classList.add('open');
 }
-function avanzarEstatus(idx){
-  var ciclo=['Pendiente','En proceso','Completado','Atrasado'];
-  pendientes[idx].estatus=ciclo[(ciclo.indexOf(pendientes[idx].estatus)+1)%ciclo.length];
-  if(pendientes[idx].estatus==='Completado') pendientes[idx].pct=100;
+
+function limpiarFiltros(){
+  ['f-area','f-est','f-pri','f-campo','f-resp'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; });
+  var b=document.getElementById('f-bus'); if(b)b.value='';
   renderAll();
 }
-function eliminar(idx){if(confirm('¿Eliminar este pendiente?')){pendientes.splice(idx,1);renderAll();}}
 
 // Iniciar
 cargarDatos();
