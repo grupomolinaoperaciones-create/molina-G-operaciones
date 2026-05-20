@@ -139,13 +139,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- RESUMEN -->
   <div id="vista-resumen">
-    <p class="section-title">Avance por gerencia</p>
+    <p class="section-title">Avance por área</p>
     <div class="ger-grid" id="ger-grid"></div>
     <p class="section-title">Resumen ejecutivo</p>
     <div class="table-wrap">
       <table class="data-table">
         <thead><tr>
-          <th style="width:22%">Gerencia</th><th style="width:8%">Total</th>
+          <th style="width:22%">Área</th><th style="width:8%">Total</th>
           <th style="width:10%">Pendiente</th><th style="width:10%">En proceso</th>
           <th style="width:10%">Atrasado</th><th style="width:10%">Completado</th>
           <th style="width:18%">Avance</th><th style="width:12%">Alerta</th>
@@ -159,7 +159,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="vista-tabla" class="hidden">
     <div class="toolbar">
       <div class="filters">
-        <select class="fsel" id="f-area" onchange="renderAll()"><option value="">Todas las gerencias</option></select>
+        <select class="fsel" id="f-area" onchange="renderAll()"><option value="">Todas las áreas</option></select>
         <select class="fsel" id="f-est" onchange="renderAll()">
           <option value="">Todos los estatus</option>
           <option>Pendiente</option><option>En proceso</option><option>Completado</option><option>Atrasado</option>
@@ -179,7 +179,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <table class="data-table">
         <thead><tr>
           <th style="width:20%">Pendiente</th>
-          <th style="width:14%">Gerencia</th>
+          <th style="width:14%">Área</th>
           <th style="width:9%">Campo</th>
           <th style="width:7%">Prioridad</th>
           <th style="width:11%">Estatus</th>
@@ -208,7 +208,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="form-grid">
         <div class="form-group full"><label class="form-label">Descripción *</label><input class="form-input" id="m-desc" placeholder="Describe el pendiente..."></div>
         <div class="form-group">
-          <label class="form-label">Gerencia</label>
+          <label class="form-label">Área</label>
           <select class="form-input" id="m-gcia"></select>
         </div>
         <div class="form-group"><label class="form-label">Campo</label>
@@ -240,10 +240,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 // ══════════════════════════════════════════════════
 // CONFIGURACIÓN — pon aquí tu URL de Apps Script
 // ══════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBdDTXmlvNHk64MOxE8IdE3-qHpTlBv61hc1CWWtScP7KBYX9kb2pZO1RSlUWBfLlZ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7weodFToGcXHUuys1oPCxLx3VvV9bsZRM4ukXG027v7dE6eEACXdVHz6kCOzMimVcFA/exec';
 
 // ══════════════════════════════════════════════════
-// GERENCIAS — extraídas dinámicamente del Sheet
+// ÁREAS — extraídas dinámicamente del Sheet
 // (se poblarán automáticamente)
 // ══════════════════════════════════════════════════
 const GER_ICONS = {
@@ -256,7 +256,7 @@ const GER_ICONS = {
 const hoy = new Date();
 document.getElementById('fecha-hoy').textContent = hoy.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-let tab = 'resumen', editIdx = null, editRowNum = null, pendientes = [], gerencias = [];
+let tab = 'resumen', editIdx = null, editRowNum = null, pendientes = [], areas = [];
 
 // Normaliza texto para comparaciones: minúsculas sin acentos
 function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
@@ -316,7 +316,7 @@ function procesarDatos(json){
     rowNum:  findCol(['fila','row','#']),          // número de fila del sheet (si existe)
     id:      findCol(['id del pendiente','id pendiente','id','folio']),
     campo:   findCol(['campo']),
-    gerencia:findCol(['gerencia']),
+    area:findCol(['gerencia','area']),
     desc:    findCol(['descripci','descripcion','pendiente']),
     resp:    findCol(['responsable']),
     pri:     findCol(['prioridad']),
@@ -339,7 +339,7 @@ function procesarDatos(json){
       id:      colMap.id     ? String(row[colMap.id]||'').trim()      : '',
       campo:   colMap.campo  ? String(row[colMap.campo]||'').trim()   : '',
       desc:    colMap.desc   ? String(row[colMap.desc]||'').trim()    : '',
-      gerencia:colMap.gerencia? String(row[colMap.gerencia]||'').trim(): '',
+      area:colMap.area? String(row[colMap.area]||'').trim(): '',
       responsable: colMap.resp ? String(row[colMap.resp]||'').trim()  : '',
       prioridad:   colMap.pri  ? String(row[colMap.pri]||'Media').trim(): 'Media',
       fecha:   colMap.fecha  ? parseFecha(String(row[colMap.fecha]||'')): '',
@@ -349,12 +349,12 @@ function procesarDatos(json){
     };
   }).filter(function(p){ return p.desc; });  // ← YA NO filtra por ID único; mantiene TODOS
 
-  // Extraer gerencias únicas del sheet (sin duplicados, sin importar capitalización)
+  // Extraer areas únicas del sheet (sin duplicados, sin importar capitalización)
   var gerSet = {};
   pendientes.forEach(function(p){
-    if(p.gerencia){ var n=norm(p.gerencia); if(!gerSet[n]) gerSet[n]=p.gerencia; }
+    if(p.area){ var n=norm(p.area); if(!gerSet[n]) gerSet[n]=p.area; }
   });
-  gerencias = Object.values(gerSet).sort();
+  areas = Object.values(gerSet).sort();
 
   // Poblar filtros dinámicamente
   poblarFiltros();
@@ -365,12 +365,12 @@ function procesarDatos(json){
 }
 
 function poblarFiltros(){
-  // Gerencias
+  // Áreas
   var fArea = document.getElementById('f-area');
   var mGcia = document.getElementById('m-gcia');
-  fArea.innerHTML = '<option value="">Todas las gerencias</option>';
+  fArea.innerHTML = '<option value="">Todas las áreas</option>';
   mGcia.innerHTML = '';
-  gerencias.forEach(function(g){
+  areas.forEach(function(g){
     var o1=document.createElement('option'); o1.value=g; o1.textContent=g; fArea.appendChild(o1);
     var o2=document.createElement('option'); o2.value=g; o2.textContent=g; mGcia.appendChild(o2);
   });
@@ -476,9 +476,9 @@ function fmtFecha(f){ if(!f)return'—'; return new Date(f+'T12:00:00').toLocale
 function gerIcon(g){ return GER_ICONS[norm(g)]||'📌'; }
 
 function gerStats(g){
-  // Compara gerencia sin importar mayúsculas/acentos ← fix del bug de filtrado
+  // Compara area sin importar mayúsculas/acentos ← fix del bug de filtrado
   var ng=norm(g);
-  var items=pendientes.filter(function(p){ return norm(p.gerencia)===ng; });
+  var items=pendientes.filter(function(p){ return norm(p.area)===ng; });
   if(!items.length) return null;
   var total=items.length,done=0,proc=0,pend=0,atr=0,sumP=0;
   items.forEach(function(p){
@@ -499,7 +499,7 @@ function getFiltered(){
   var campo=document.getElementById('f-campo').value;
   var bus=document.getElementById('f-bus').value.toLowerCase();
   return pendientes.filter(function(p){
-    return(!area||norm(p.gerencia)===norm(area))&&
+    return(!area||norm(p.area)===norm(area))&&
            (!est||p.estatus===est)&&
            (!pri||p.prioridad===pri)&&
            (!resp||p.responsable===resp)&&
@@ -513,7 +513,7 @@ function getFiltered(){
 // ══════════════════════════════════════════════════
 function renderAll(){
   renderMetrics();
-  if(tab==='resumen'){ renderGerencias(); renderResumenTabla(); }
+  if(tab==='resumen'){ renderAreas(); renderResumenTabla(); }
   else if(tab==='tabla') renderTabla();
   else renderKanban();
 }
@@ -534,8 +534,8 @@ function renderMetrics(){
     '<div class="metric"><div class="metric-label">Avance global</div><div class="metric-val" style="color:#3B6D11">'+avg+'%</div></div>';
 }
 
-function renderGerencias(){
-  document.getElementById('ger-grid').innerHTML=gerencias.map(function(g){
+function renderAreas(){
+  document.getElementById('ger-grid').innerHTML=areas.map(function(g){
     var s=gerStats(g); if(!s)return'';
     var c=pctColor(s.avg);
     return'<div class="ger-card">'+
@@ -552,7 +552,7 @@ function renderGerencias(){
 }
 
 function renderResumenTabla(){
-  document.getElementById('resumen-body').innerHTML=gerencias.map(function(g){
+  document.getElementById('resumen-body').innerHTML=areas.map(function(g){
     var s=gerStats(g);
     if(!s) return'<tr><td>'+gerIcon(g)+' '+g+'</td><td colspan="7" style="color:var(--gris);font-size:12px">Sin registros aún</td></tr>';
     var c=pctColor(s.avg);
@@ -580,7 +580,7 @@ function renderTabla(){
     var c=pctColor(p.pct||0);
     return'<tr>'+
       '<td><span style="font-weight:500">'+p.desc+'</span>'+(p.avance?'<div style="font-size:11px;color:var(--gris);margin-top:2px">'+p.avance+'</div>':'')+'</td>'+
-      '<td><span class="area-tag">'+p.gerencia+'</span></td>'+
+      '<td><span class="area-tag">'+p.area+'</span></td>'+
       '<td style="font-size:12px;color:var(--gris)">'+(p.campo||'—')+'</td>'+
       '<td>'+priDot(p.prioridad)+'</td>'+
       // Estatus inline editable
@@ -615,7 +615,7 @@ function renderKanban(){
       var c=pctColor(p.pct||0);
       return'<div class="k-card">'+
         '<div class="k-card-title">'+p.desc+'</div>'+
-        '<div class="k-card-meta"><span class="area-tag" style="font-size:10px">'+p.gerencia+'</span>'+priDot(p.prioridad)+'</div>'+
+        '<div class="k-card-meta"><span class="area-tag" style="font-size:10px">'+p.area+'</span>'+priDot(p.prioridad)+'</div>'+
         '<div style="display:flex;align-items:center;gap:6px;margin-top:7px">'+
           '<div style="flex:1;height:4px;background:var(--crema-dark);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+(p.pct||0)+'%;background:'+c+';border-radius:2px"></div></div>'+
           '<span style="font-size:10px;font-weight:500;color:'+c+'">'+(p.pct||0)+'%</span>'+
@@ -680,7 +680,7 @@ function guardar(){
 
   var item={
     desc:    desc,
-    gerencia:document.getElementById('m-gcia').value,
+    area:document.getElementById('m-gcia').value,
     campo:   document.getElementById('m-campo').value,
     responsable: document.getElementById('m-resp').value||'Sin asignar',
     prioridad:   document.getElementById('m-pri').value,
@@ -700,7 +700,7 @@ function guardar(){
     enviarAlSheet('update',{
       rowNum:  item._rowNum,
       desc:    item.desc,
-      gerencia:item.gerencia,
+      area:item.area,
       campo:   item.campo,
       responsable: item.responsable,
       prioridad:   item.prioridad,
@@ -717,7 +717,7 @@ function guardar(){
     // Nuevo registro — agregar fila al Sheet
     enviarAlSheet('append',{
       desc:    item.desc,
-      gerencia:item.gerencia,
+      area:item.area,
       campo:   item.campo,
       responsable: item.responsable,
       prioridad:   item.prioridad,
@@ -743,11 +743,11 @@ function editarItem(idx){
   editIdx=idx;
   var p=pendientes[idx];
   document.getElementById('m-desc').value=p.desc;
-  // Asegurar que la opción de gerencia exista
+  // Asegurar que la opción de area exista
   var gSel=document.getElementById('m-gcia');
   var found=false;
-  for(var i=0;i<gSel.options.length;i++){ if(gSel.options[i].value===p.gerencia){gSel.selectedIndex=i;found=true;break;} }
-  if(!found){var o=document.createElement('option');o.value=p.gerencia;o.textContent=p.gerencia;gSel.appendChild(o);gSel.value=p.gerencia;}
+  for(var i=0;i<gSel.options.length;i++){ if(gSel.options[i].value===p.area){gSel.selectedIndex=i;found=true;break;} }
+  if(!found){var o=document.createElement('option');o.value=p.area;o.textContent=p.area;gSel.appendChild(o);gSel.value=p.area;}
   document.getElementById('m-resp').value=p.responsable;
   document.getElementById('m-pri').value=p.prioridad;
   document.getElementById('m-fecha').value=p.fecha;
