@@ -240,7 +240,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 // ══════════════════════════════════════════════════
 // CONFIGURACIÓN — pon aquí tu URL de Apps Script
 // ══════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBdDTXmlvNHk64MOxE8IdE3-qHpTlBv61hc1CWWtScP7KBYX9kb2pZO1RSlUWBfLlZ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7weodFToGcXHUuys1oPCxLx3VvV9bsZRM4ukXG027v7dE6eEACXdVHz6kCOzMimVcFA/exec';
 
 // ══════════════════════════════════════════════════
 // ÁREAS — extraídas dinámicamente del Sheet
@@ -472,7 +472,7 @@ function isAtrasado(p){ return p.fecha&&p.estatus!=='Completado'&&new Date(p.fec
 function pctColor(n){ if(n>=80)return'#3B6D11'; if(n>=40)return'#1A4F82'; if(n>0)return'#C87D1A'; return'#B83232'; }
 function badgeEst(e){ var m={Pendiente:'b-pend','En proceso':'b-proc',Completado:'b-done',Atrasado:'b-atras'}; return'<span class="badge '+(m[e]||'b-pend')+'">'+e+'</span>'; }
 function priDot(p){ var c={Alta:'#B83232',Media:'#C87D1A',Baja:'#4A7C3F'}; return'<span class="pri-dot" style="background:'+(c[p]||c.Media)+'"></span>'+p; }
-function fmtFecha(f){ if(!f)return'—'; return new Date(f+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'}); }
+function fmtFecha(f){ if(!f)return'—'; var p=f.split('-'); if(p.length===3){ return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}); } return new Date(f).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}); }
 function gerIcon(g){ return GER_ICONS[norm(g)]||'📌'; }
 
 function gerStats(g){
