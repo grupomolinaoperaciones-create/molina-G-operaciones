@@ -719,24 +719,25 @@ function guardar(){
       if(res&&res.ok) setStatus('ok','Actualizado ✓ · '+new Date().toLocaleTimeString('es-MX'));
     });
   } else {
-    // Nuevo registro — agregar fila al Sheet
-    enviarAlSheet('append',{
-      desc:    item.desc,
-      area:item.area,
-      campo:   item.campo,
-      responsable: item.responsable,
-      prioridad:   item.prioridad,
-      fecha:   item.fecha,
-      estatus: item.estatus,
-      pct:     item.pct,
-      avance:  item.avance
-    }, function(res){
-      btn.disabled=false; btn.textContent='Guardar';
-      closeModal();
-      // Recargar para obtener el nuevo _rowNum del Sheet
-      cargarDatos();
-      if(res&&res.ok) setStatus('ok','Pendiente guardado ✓ · '+new Date().toLocaleTimeString('es-MX'));
-    });
+    // Nuevo registro — abrir URL directamente (método confiable)
+    var params = [
+      'action=append',
+      'area='+encodeURIComponent(item.area),
+      'desc='+encodeURIComponent(item.desc),
+      'responsable='+encodeURIComponent(item.responsable),
+      'prioridad='+encodeURIComponent(item.prioridad),
+      'fecha='+encodeURIComponent(item.fecha),
+      'estatus='+encodeURIComponent(item.estatus),
+      'pct='+encodeURIComponent(item.pct),
+      'avance='+encodeURIComponent(item.avance||''),
+      'campo='+encodeURIComponent(item.campo),
+      't='+Date.now()
+    ].join('&');
+    window.open(SCRIPT_URL+'?'+params, '_blank');
+    btn.disabled=false; btn.textContent='Guardar';
+    closeModal();
+    setTimeout(function(){ cargarDatos(); }, 3000);
+    setStatus('ok','Pendiente guardado ✓ · '+new Date().toLocaleTimeString('es-MX'));
     // Mostrar localmente de inmediato
     item._rowNum=9999;
     pendientes.unshift(item);
