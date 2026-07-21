@@ -719,27 +719,14 @@ function guardar(){
       if(res&&res.ok) setStatus('ok','Actualizado ✓ · '+new Date().toLocaleTimeString('es-MX'));
     });
   } else {
-    // Nuevo registro — iframe oculto para evitar ventana emergente
-    var params = [
-      'action=append',
-      'area='+encodeURIComponent(item.area),
-      'desc='+encodeURIComponent(item.desc),
-      'responsable='+encodeURIComponent(item.responsable),
-      'prioridad='+encodeURIComponent(item.prioridad),
-      'fecha='+encodeURIComponent(item.fecha),
-      'estatus='+encodeURIComponent(item.estatus),
-      'pct='+encodeURIComponent(item.pct),
-      'avance='+encodeURIComponent(item.avance||''),
-      'campo='+encodeURIComponent(item.campo),
-      't='+Date.now()
-    ].join('&');
-    var win = window.open(SCRIPT_URL+'?'+params, '_blank', 'width=1,height=1,left=9999,top=9999');
-    if(win){ setTimeout(function(){ try{win.close();}catch(e){} }, 2000); }
-    btn.disabled=false; btn.textContent='Guardar';
-    closeModal();
-    showToast('✓ Guardado');
-    setTimeout(function(){ hideToast(); cargarDatos(); }, 3000);
-    setStatus('ok','Pendiente guardado ✓ · '+new Date().toLocaleTimeString('es-MX'));
+    // Nuevo registro — JSONP
+    enviarAlSheet('append', item, function(res){
+      btn.disabled=false; btn.textContent='Guardar';
+      closeModal();
+      showToast('✓ Guardado');
+      setTimeout(function(){ hideToast(); cargarDatos(); }, 2000);
+      setStatus('ok','Pendiente guardado ✓ · '+new Date().toLocaleTimeString('es-MX'));
+    });
     item._rowNum=9999;
     pendientes.unshift(item);
     renderAll();
