@@ -39,6 +39,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .metric-val{font-size:24px;font-weight:500;color:var(--text)}
 .section-title{font-size:14px;font-weight:500;color:var(--vino);display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-left:8px;border-left:3px solid var(--vino)}
 .ger-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+.date-filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--crema);border:1px solid var(--crema-dark);border-radius:10px;padding:10px 14px;margin-bottom:1rem}
+.date-filter-bar label{font-size:11px;color:var(--gris);text-transform:uppercase;letter-spacing:.05em}
+.date-input{font-size:12px;border-radius:8px;padding:5px 9px;border:1px solid var(--crema-dark);background:#fff;color:var(--text)}
+.date-quick{font-size:11px;border-radius:8px;padding:5px 10px;border:1px solid var(--crema-dark);background:#fff;color:var(--gris);cursor:pointer}
+.date-quick.active,.date-quick:hover{background:var(--vino);color:#FAF6EF;border-color:var(--vino)}
+.date-rango-label{font-size:12px;color:var(--vino);font-weight:500;margin-left:4px}
 .ger-card{background:#fff;border:1px solid var(--crema-dark);border-radius:12px;padding:14px 16px}
 .ger-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
 .ger-name{font-size:13px;font-weight:500;color:var(--text)}
@@ -139,6 +145,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- RESUMEN -->
   <div id="vista-resumen">
+    <div class="date-filter-bar">
+      <label>Período:</label>
+      <button class="date-quick active" id="qbtn-mes" onclick="setQuick('mes')">Este mes</button>
+      <button class="date-quick" id="qbtn-mesant" onclick="setQuick('mesant')">Mes anterior</button>
+      <button class="date-quick" id="qbtn-semana" onclick="setQuick('semana')">Esta semana</button>
+      <button class="date-quick" id="qbtn-todo" onclick="setQuick('todo')">Todo</button>
+      <span style="color:var(--crema-dark);margin:0 4px">|</span>
+      <label>Desde:</label>
+      <input type="date" class="date-input" id="f-desde" onchange="setQuick('custom')">
+      <label>Hasta:</label>
+      <input type="date" class="date-input" id="f-hasta" onchange="setQuick('custom')">
+      <span class="date-rango-label" id="rango-label"></span>
+    </div>
     <p class="section-title">Avance por área</p>
     <div class="ger-grid" id="ger-grid"></div>
     <p class="section-title">Resumen ejecutivo</p>
@@ -257,6 +276,78 @@ const hoy = new Date();
 document.getElementById('fecha-hoy').textContent = hoy.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
 let tab = 'resumen', editIdx = null, editRowNum = null, pendientes = [], areas = [];
+var fechaDesde = '', fechaHasta = '', quickMode = 'mes';
+
+function initFechas(){
+  var now = new Date();
+  var y = now.getFullYear(), m = now.getMonth();
+  fechaDesde = y+'-'+String(m+1).padStart(2,'0')+'-01';
+  var lastDay = new Date(y, m+1, 0).getDate();
+  fechaHasta = y+'-'+String(m+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
+  var fd=document.getElementById('f-desde'), fh=document.getElementById('f-hasta');
+  if(fd) fd.value = fechaDesde;
+  if(fh) fh.value = fechaHasta;
+  actualizarRangoLabel();
+}
+
+function setQuick(mode){
+  var now = new Date();
+  var y = now.getFullYear(), m = now.getMonth();
+  quickMode = mode;
+  ['mes','mesant','semana','todo'].forEach(function(k){
+    var el = document.getElementById('qbtn-'+k);
+    if(el) el.className = 'date-quick'+(k===mode?' active':'');
+  });
+  if(mode==='mes'){
+    fechaDesde = y+'-'+String(m+1).padStart(2,'0')+'-01';
+    var lastDay = new Date(y, m+1, 0).getDate();
+    fechaHasta = y+'-'+String(m+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
+  } else if(mode==='mesant'){
+    var pm = m===0?11:m-1, py = m===0?y-1:y;
+    fechaDesde = py+'-'+String(pm+1).padStart(2,'0')+'-01';
+    var lastDay2 = new Date(py, pm+1, 0).getDate();
+    fechaHasta = py+'-'+String(pm+1).padStart(2,'0')+'-'+String(lastDay2).padStart(2,'0');
+  } else if(mode==='semana'){
+    var day = now.getDay(); var diff = day===0?-6:1-day;
+    var lun = new Date(now); lun.setDate(now.getDate()+diff);
+    var dom = new Date(lun); dom.setDate(lun.getDate()+6);
+    fechaDesde = lun.getFullYear()+'-'+String(lun.getMonth()+1).padStart(2,'0')+'-'+String(lun.getDate()).padStart(2,'0');
+    fechaHasta = dom.getFullYear()+'-'+String(dom.getMonth()+1).padStart(2,'0')+'-'+String(dom.getDate()).padStart(2,'0');
+  } else if(mode==='todo'){
+    fechaDesde = ''; fechaHasta = '';
+  } else if(mode==='custom'){
+    var fd=document.getElementById('f-desde'), fh=document.getElementById('f-hasta');
+    fechaDesde = fd?fd.value:''; fechaHasta = fh?fh.value:'';
+    ['mes','mesant','semana','todo'].forEach(function(k){
+      var el=document.getElementById('qbtn-'+k); if(el) el.className='date-quick';
+    });
+  }
+  if(mode!=='custom'){
+    var fd=document.getElementById('f-desde'), fh=document.getElementById('f-hasta');
+    if(fd) fd.value = fechaDesde;
+    if(fh) fh.value = fechaHasta;
+  }
+  actualizarRangoLabel();
+  renderAll();
+}
+
+function actualizarRangoLabel(){
+  var el = document.getElementById('rango-label');
+  if(!el) return;
+  if(!fechaDesde && !fechaHasta){ el.textContent='Todos los registros'; return; }
+  var opts={day:'2-digit',month:'short',year:'numeric'};
+  var d1 = fechaDesde ? new Date(fechaDesde+'T12:00:00').toLocaleDateString('es-MX',opts) : '—';
+  var d2 = fechaHasta ? new Date(fechaHasta+'T12:00:00').toLocaleDateString('es-MX',opts) : '—';
+  el.textContent = d1+' → '+d2;
+}
+
+function pendienteEnRango(p){
+  if(!fechaDesde && !fechaHasta) return true;
+  if(!p.fecha) return !fechaDesde;
+  if(fechaDesde && p.fecha < fechaDesde) return false;
+  if(fechaHasta && p.fecha > fechaHasta) return false;
+  return true;
+}
 
 // Normaliza texto para comparaciones: minúsculas sin acentos
 function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
@@ -483,7 +574,7 @@ function gerIcon(g){ return GER_ICONS[norm(g)]||'📌'; }
 function gerStats(g){
   // Compara area sin importar mayúsculas/acentos ← fix del bug de filtrado
   var ng=norm(g);
-  var items=pendientes.filter(function(p){ return norm(p.area)===ng; });
+  var items=pendientes.filter(function(p){ return norm(p.area)===ng && pendienteEnRango(p); });
   if(!items.length) return null;
   var total=items.length,done=0,proc=0,pend=0,atr=0,sumP=0;
   items.forEach(function(p){
@@ -524,8 +615,9 @@ function renderAll(){
 }
 
 function renderMetrics(){
-  var t=pendientes.length,enP=0,atr=0,done=0,sumP=0;
-  pendientes.forEach(function(p){
+  var filtered=pendientes.filter(pendienteEnRango);
+  var t=filtered.length,enP=0,atr=0,done=0,sumP=0;
+  filtered.forEach(function(p){
     if(p.estatus==='En proceso') enP++;
     if(p.estatus==='Atrasado'||isAtrasado(p)) atr++;
     if(p.estatus==='Completado') done++;
@@ -760,6 +852,7 @@ function limpiarFiltros(){
 }
 
 // Iniciar
+initFechas();
 cargarDatos();
 setInterval(cargarDatos, 5*60*1000);
 </script>
