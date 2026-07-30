@@ -176,6 +176,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- TABLA -->
   <div id="vista-tabla" class="hidden">
+    <div class="date-filter-bar" style="margin-bottom:8px">
+      <label>Período:</label>
+      <button class="date-quick active" id="tbtn-mes" onclick="setQuickTabla('mes')">Este mes</button>
+      <button class="date-quick" id="tbtn-mesant" onclick="setQuickTabla('mesant')">Mes anterior</button>
+      <button class="date-quick" id="tbtn-semana" onclick="setQuickTabla('semana')">Esta semana</button>
+      <button class="date-quick" id="tbtn-todo" onclick="setQuickTabla('todo')">Todo</button>
+      <span style="color:var(--crema-dark);margin:0 4px">|</span>
+      <label>Desde:</label>
+      <input type="date" class="date-input" id="tf-desde" onchange="setQuickTabla('custom')">
+      <label>Hasta:</label>
+      <input type="date" class="date-input" id="tf-hasta" onchange="setQuickTabla('custom')">
+      <span class="date-rango-label" id="tabla-rango-label"></span>
+    </div>
     <div class="toolbar">
       <div class="filters">
         <select class="fsel" id="f-area" onchange="renderAll()"><option value="">Todas las áreas</option></select>
@@ -277,6 +290,7 @@ document.getElementById('fecha-hoy').textContent = hoy.toLocaleDateString('es-MX
 
 let tab = 'resumen', editIdx = null, editRowNum = null, pendientes = [], areas = [];
 var fechaDesde = '', fechaHasta = '', quickMode = 'mes';
+var tablaDesde = '', tablaHasta = '', tablaQuickMode = 'todo';
 
 function initFechas(){
   var now = new Date();
@@ -346,6 +360,65 @@ function pendienteEnRango(p){
   if(!p.fecha) return !fechaDesde;
   if(fechaDesde && p.fecha < fechaDesde) return false;
   if(fechaHasta && p.fecha > fechaHasta) return false;
+  return true;
+}
+
+function setQuickTabla(mode){
+  var now = new Date();
+  var y = now.getFullYear(), m = now.getMonth();
+  tablaQuickMode = mode;
+  ['mes','mesant','semana','todo'].forEach(function(k){
+    var el = document.getElementById('tbtn-'+k);
+    if(el) el.className = 'date-quick'+(k===mode?' active':'');
+  });
+  if(mode==='mes'){
+    tablaDesde = y+'-'+String(m+1).padStart(2,'0')+'-01';
+    var lastDay = new Date(y, m+1, 0).getDate();
+    tablaHasta = y+'-'+String(m+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
+  } else if(mode==='mesant'){
+    var pm = m===0?11:m-1, py = m===0?y-1:y;
+    tablaDesde = py+'-'+String(pm+1).padStart(2,'0')+'-01';
+    var lastDay2 = new Date(py, pm+1, 0).getDate();
+    tablaHasta = py+'-'+String(pm+1).padStart(2,'0')+'-'+String(lastDay2).padStart(2,'0');
+  } else if(mode==='semana'){
+    var day = now.getDay(); var diff = day===0?-6:1-day;
+    var lun = new Date(now); lun.setDate(now.getDate()+diff);
+    var dom = new Date(lun); dom.setDate(lun.getDate()+6);
+    tablaDesde = lun.getFullYear()+'-'+String(lun.getMonth()+1).padStart(2,'0')+'-'+String(lun.getDate()).padStart(2,'0');
+    tablaHasta = dom.getFullYear()+'-'+String(dom.getMonth()+1).padStart(2,'0')+'-'+String(dom.getDate()).padStart(2,'0');
+  } else if(mode==='todo'){
+    tablaDesde = ''; tablaHasta = '';
+  } else if(mode==='custom'){
+    var fd=document.getElementById('tf-desde'), fh=document.getElementById('tf-hasta');
+    tablaDesde = fd?fd.value:''; tablaHasta = fh?fh.value:'';
+    ['mes','mesant','semana','todo'].forEach(function(k){
+      var el=document.getElementById('tbtn-'+k); if(el) el.className='date-quick';
+    });
+  }
+  if(mode!=='custom'){
+    var fd=document.getElementById('tf-desde'), fh=document.getElementById('tf-hasta');
+    if(fd) fd.value = tablaDesde;
+    if(fh) fh.value = tablaHasta;
+  }
+  // Update label
+  var el = document.getElementById('tabla-rango-label');
+  if(el){
+    if(!tablaDesde && !tablaHasta){ el.textContent='Todos los registros'; }
+    else {
+      var opts={day:'2-digit',month:'short',year:'numeric'};
+      var d1 = tablaDesde ? new Date(tablaDesde+'T12:00:00').toLocaleDateString('es-MX',opts) : '—';
+      var d2 = tablaHasta ? new Date(tablaHasta+'T12:00:00').toLocaleDateString('es-MX',opts) : '—';
+      el.textContent = d1+' → '+d2;
+    }
+  }
+  renderAll();
+}
+
+function pendienteEnRangoTabla(p){
+  if(!tablaDesde && !tablaHasta) return true;
+  if(!p.fecha) return !tablaDesde;
+  if(tablaDesde && p.fecha < tablaDesde) return false;
+  if(tablaHasta && p.fecha > tablaHasta) return false;
   return true;
 }
 
@@ -595,7 +668,8 @@ function getFiltered(){
   var campo=document.getElementById('f-campo').value;
   var bus=document.getElementById('f-bus').value.toLowerCase();
   return pendientes.filter(function(p){
-    return(!area||norm(p.area)===norm(area))&&
+    return pendienteEnRangoTabla(p)&&
+           (!area||norm(p.area)===norm(area))&&
            (!est||p.estatus===est)&&
            (!pri||p.prioridad===pri)&&
            (!resp||p.responsable===resp)&&
@@ -853,6 +927,7 @@ function limpiarFiltros(){
 
 // Iniciar
 initFechas();
+setQuickTabla('todo');
 cargarDatos();
 setInterval(cargarDatos, 5*60*1000);
 </script>
