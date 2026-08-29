@@ -220,7 +220,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <th style="width:11%">Estatus</th>
           <th style="width:10%">Responsable</th>
           <th style="width:13%">% Avance</th>
-          <th style="width:7%">Fecha</th>
+          <th style="width:7%">F. Inicio</th>
           <th style="width:9%">Acciones</th>
         </tr></thead>
         <tbody id="tabla-body"></tbody>
@@ -257,6 +257,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="form-group"><label class="form-label">Responsable</label><input class="form-input" id="m-resp" placeholder="Nombre"></div>
         <div class="form-group"><label class="form-label">Prioridad</label><select class="form-input" id="m-pri"><option>Alta</option><option>Media</option><option>Baja</option></select></div>
+        <div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" type="date" id="m-finicio"></div>
         <div class="form-group"><label class="form-label">Fecha límite</label><input class="form-input" type="date" id="m-fecha"></div>
         <div class="form-group"><label class="form-label">Estatus</label><select class="form-input" id="m-est"><option>Pendiente</option><option>En proceso</option><option>Completado</option><option>Atrasado</option></select></div>
         <div class="form-group full"><label class="form-label">% de avance</label>
@@ -278,7 +279,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 // ══════════════════════════════════════════════════
 // CONFIGURACIÓN — pon aquí tu URL de Apps Script
 // ══════════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxPegrZX_0Gc6G8xXaa1QXWMpOB22ddNMmpFWhnOrNXsl8QKidZVSvL_QtyLliopJWC/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLVuU9nDrpCL7ChmAl_QuSf9pCpZzq33w04X_Xk0byv_M4390VbPqrP_8_9kxqsUjJ/exec';
 
 // ══════════════════════════════════════════════════
 // ÁREAS — extraídas dinámicamente del Sheet
@@ -422,9 +423,11 @@ function setQuickTabla(mode){
 
 function pendienteEnRangoTabla(p){
   if(!tablaDesde && !tablaHasta) return true;
-  if(!p.fecha) return !tablaDesde;
-  if(tablaDesde && p.fecha < tablaDesde) return false;
-  if(tablaHasta && p.fecha > tablaHasta) return false;
+  // Filtrar por fecha de inicio
+  var fi = p.fechaInicio || p.fecha;
+  if(!fi) return !tablaDesde;
+  if(tablaDesde && fi < tablaDesde) return false;
+  if(tablaHasta && fi > tablaHasta) return false;
   return true;
 }
 
@@ -490,7 +493,9 @@ function procesarDatos(json){
     desc:    findCol(['descripci','descripcion','pendiente']),
     resp:    findCol(['responsable']),
     pri:     findCol(['prioridad']),
-    fecha:   findCol(['fecha']),
+    fecha:      findCol(['fecha limit','fecha lim','fecha_lim','fecha l']),
+    fechaInicio:findCol(['fecha ini','fecha_ini','inicio']),
+    fechaFin:   findCol(['fecha fin','fecha_fin','finalizac','finaliz']),
     estatus: findCol(['estatus','status','estado']),
     pct:     findCol(['avance','%','porcentaje']),
     comment: findCol(['comentario','nota','observaci']),
@@ -512,7 +517,9 @@ function procesarDatos(json){
       area:colMap.area? String(row[colMap.area]||'').trim(): '',
       responsable: colMap.resp ? String(row[colMap.resp]||'').trim()  : '',
       prioridad:   colMap.pri  ? String(row[colMap.pri]||'Media').trim(): 'Media',
-      fecha:   colMap.fecha  ? parseFecha(String(row[colMap.fecha]||'')): '',
+      fecha:      colMap.fecha       ? parseFecha(String(row[colMap.fecha]||''))      : '',
+      fechaInicio:colMap.fechaInicio ? parseFecha(String(row[colMap.fechaInicio]||'')) : '',
+      fechaFin:   colMap.fechaFin   ? parseFecha(String(row[colMap.fechaFin]||''))    : '',
       estatus: est,
       avance:  colMap.comment? String(row[colMap.comment]||'').trim() : '',
       pct:     pctNum,
@@ -774,7 +781,7 @@ function renderTabla(){
         '<div style="flex:1;height:6px;background:var(--crema-dark);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+(p.pct||0)+'%;background:'+c+';border-radius:3px"></div></div>'+
         '</div>'+
       '</td>'+
-      '<td style="color:'+(atras?'#B83232':'var(--text)')+';font-size:12px">'+fmtFecha(p.fecha)+'</td>'+
+      '<td style="color:'+(atras?'#B83232':'var(--text)')+';font-size:12px">'+fmtFecha(p.fechaInicio||p.fecha)+'</td>'+
       '<td>'+
         '<button class="action-btn" onclick="editarItem('+ri+')" title="Editar todo">✏️</button>'+
       '</td></tr>';
@@ -813,14 +820,20 @@ function actualizarCampo(idx, campo, valor){
   var p = pendientes[idx];
   if(campo==='pct') valor=parseInt(valor)||0;
   p[campo] = valor;
-  if(campo==='estatus'&&valor==='Completado') p.pct=100;
+  if(campo==='estatus'&&valor==='Completado'){
+    p.pct=100;
+    // Auto fecha finalizacion
+    var hoyStr = new Date().toISOString().split('T')[0];
+    p.fechaFin = hoyStr;
+  }
 
   // Guardar al Sheet
   enviarAlSheet('update', {
     rowNum: p._rowNum,
     estatus: p.estatus,
     pct: p.pct,
-    avance: p.avance
+    avance: p.avance,
+    fechaFin: p.fechaFin||''
   }, function(res){
     renderAll();
     if(res&&res.ok) setStatus('ok','Guardado ✓ · '+new Date().toLocaleTimeString('es-MX'));
@@ -835,6 +848,7 @@ function openModal(){
   editIdx=null;
   ['m-desc','m-resp','m-avance'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('m-fecha').value='';
+  document.getElementById('m-finicio').value='';
   document.getElementById('m-pri').value='Alta';
   document.getElementById('m-est').value='Pendiente';
   document.getElementById('m-pct').value=0;
@@ -861,7 +875,9 @@ function guardar(){
     campo:   document.getElementById('m-campo').value,
     responsable: document.getElementById('m-resp').value||'Sin asignar',
     prioridad:   document.getElementById('m-pri').value,
-    fecha:   document.getElementById('m-fecha').value,
+    fecha:      document.getElementById('m-fecha').value,
+    fechaInicio:document.getElementById('m-finicio').value,
+    fechaFin:   '',
     estatus: est,
     avance:  document.getElementById('m-avance').value,
     pct:     pct,
@@ -892,6 +908,8 @@ function guardar(){
     });
   } else {
     // Nuevo registro — JSONP
+    item.fechaInicio = item.fechaInicio||'';
+    item.fechaFin = '';
     enviarAlSheet('append', item, function(res){
       btn.disabled=false; btn.textContent='Guardar';
       closeModal();
@@ -917,6 +935,7 @@ function editarItem(idx){
   document.getElementById('m-resp').value=p.responsable;
   document.getElementById('m-pri').value=p.prioridad;
   document.getElementById('m-fecha').value=p.fecha;
+  document.getElementById('m-finicio').value=p.fechaInicio||'';
   document.getElementById('m-est').value=p.estatus;
   document.getElementById('m-avance').value=p.avance;
   document.getElementById('m-pct').value=p.pct||0;
